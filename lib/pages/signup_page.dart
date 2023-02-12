@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:myapp/providers/sign_provider.dart';
 
+import '../styles/input_deco.dart';
 import '../widgets/password.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -25,6 +26,8 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   bool _showPassword = false;
 
   late AnimationController _controller;
+
+  bool _usernameTaken = false;
 
   @override
   void initState() {
@@ -63,7 +66,15 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sign Up")),
+      appBar: AppBar(
+          title: Row(
+            children: [
+              IconButton(onPressed: () {_provider.backToLogin(context);},
+              icon: const Icon(Icons.arrow_back, color: Colors.white,)),
+              const Text("Already have an account", style: TextStyle(color: Colors.white),),
+            ],
+          )
+      ),
       resizeToAvoidBottomInset: false,
       body: Padding(
         padding: const EdgeInsets.only(left: 35, right: 35),
@@ -82,9 +93,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                       child: Column(
                         children: [
                           TextFormField(
-                            decoration: const InputDecoration(
-                              labelText: "Name",
-                            ),
+                            decoration: MyDecorations.registerDeco('Name'),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return "Please enter your name";
@@ -93,20 +102,33 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                             },
                             onSaved: (value) => _name = value!,
                           ),
+                          const Padding(padding: EdgeInsets.all(5)),
                           TextFormField(
-                            decoration: const InputDecoration(
-                              labelText: "Username",
-                            ),
+                            decoration: MyDecorations.registerDeco('Username'),
+                            onChanged: (value) async {
+                              if(_usernameTaken) {
+                                _usernameTaken = false;
+                                _formKey1.currentState!.validate();
+                              }
+                            },
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return "Please enter your username";
+                              }
+                              if(_usernameTaken) {
+                                return "This username is already taken";
                               }
                               return null;
                             },
                             onSaved: (value) => _username = value!,
                           ),
                           const SizedBox(height: 20.0),
-                          NextButton(_showNextSection, _formKey1)
+                          NextButton(() async {
+                            _usernameTaken = await _provider.isUsernameTaken(_username);
+                            if(_formKey1.currentState!.validate()) {
+                              _showNextSection();
+                            }
+                          }, _formKey1)
                         ],
                       ),
                     ),
@@ -123,9 +145,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                         children: [
                           TextFormField(
                             keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              labelText: "Email",
-                            ),
+                            decoration: MyDecorations.registerDeco('Email'),
                             validator: (value) {
                               if (value == null ||
                                   value.isEmpty ||
@@ -196,6 +216,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                             },
                             label: 'Password',
                           ),
+                          const Padding(padding: EdgeInsets.all(5)),
                           PasswordWidget(
                             label: "Confirm password",
                             validator: (value) {
@@ -221,8 +242,6 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                                         _provider
                                             .createUserWithEmailAndPassword(
                                                 _email, _password, _name, _username, _country!.countryCode);
-                                        //_provider.registerUserData(_name,
-                                           // _username, _country!.countryCode);
                                       }
                                     },
                                     child: const Text("Sign Up"),

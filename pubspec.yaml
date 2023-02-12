@@ -41,6 +41,8 @@ dependencies:
 
   country_picker: ^2.0.19
   cloud_firestore: ^4.3.2
+  shared_preferences: ^2.0.17
+  go_router: ^6.0.6
 
 
 dev_dependencies:
