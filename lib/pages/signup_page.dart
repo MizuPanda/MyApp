@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:country_picker/country_picker.dart';
+import 'package:go_router/go_router.dart';
 import 'package:myapp/providers/sign_provider.dart';
 
 import '../styles/input_deco.dart';
@@ -29,6 +30,9 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
 
   bool _usernameTaken = false;
 
+  String? _error;
+  bool _hasError = false;
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +40,30 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
+  }
+
+  void _showName() {
+    setState(() {
+      _showNameAndUsername = true;
+      _showEmailAndCountry = false;
+      _showPassword = false;
+    });
+  }
+
+  void _showEmail() {
+    setState(() {
+      _showNameAndUsername = false;
+      _showEmailAndCountry = true;
+      _showPassword = false;
+    });
+  }
+
+  void _showPasswords() {
+    setState(() {
+      _showNameAndUsername = false;
+      _showEmailAndCountry = false;
+      _showPassword = true;
+    });
   }
 
   void _showLastSection() {
@@ -48,6 +76,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
         _showNameAndUsername = true;
       }
     });
+    _controller.reverse();
   }
 
   void _showNextSection() {
@@ -65,16 +94,28 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    void goToMain() {
+      context.push('/main');
+    }
+
     return Scaffold(
       appBar: AppBar(
           title: Row(
-            children: [
-              IconButton(onPressed: () {_provider.backToLogin(context);},
-              icon: const Icon(Icons.arrow_back, color: Colors.white,)),
-              const Text("Already have an account", style: TextStyle(color: Colors.white),),
-            ],
-          )
-      ),
+        children: [
+          IconButton(
+              onPressed: () {
+                context.push('/login');
+              },
+              icon: const Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+              )),
+          const Text(
+            "Already have an account",
+            style: TextStyle(color: Colors.white),
+          ),
+        ],
+      )),
       resizeToAvoidBottomInset: false,
       body: Padding(
         padding: const EdgeInsets.only(left: 35, right: 35),
@@ -96,6 +137,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                             decoration: MyDecorations.registerDeco('Name'),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
+                                _showName();
                                 return "Please enter your name";
                               }
                               return null;
@@ -106,16 +148,17 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                           TextFormField(
                             decoration: MyDecorations.registerDeco('Username'),
                             onChanged: (value) async {
-                              if(_usernameTaken) {
+                              if (_usernameTaken) {
                                 _usernameTaken = false;
                                 _formKey1.currentState!.validate();
                               }
                             },
                             validator: (value) {
                               if (value == null || value.isEmpty) {
+                                _showName();
                                 return "Please enter your username";
                               }
-                              if(_usernameTaken) {
+                              if (_usernameTaken) {
                                 return "This username is already taken";
                               }
                               return null;
@@ -124,8 +167,9 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                           ),
                           const SizedBox(height: 20.0),
                           NextButton(() async {
-                            _usernameTaken = await _provider.isUsernameTaken(_username);
-                            if(_formKey1.currentState!.validate()) {
+                            _usernameTaken =
+                                await _provider.isUsernameTaken(_username);
+                            if (_formKey1.currentState!.validate()) {
                               _showNextSection();
                             }
                           }, _formKey1)
@@ -146,14 +190,30 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                           TextFormField(
                             keyboardType: TextInputType.emailAddress,
                             decoration: MyDecorations.registerDeco('Email'),
+                            onChanged: (value) {
+                              if (_hasError) {
+                                _error = null;
+                                _hasError = false;
+                                _formKey2.currentState!.validate();
+                              }
+                            },
                             validator: (value) {
+                              _hasError = true;
+
                               if (value == null ||
                                   value.isEmpty ||
                                   !value.contains('@')) {
+                                _showEmail();
                                 return "Please enter your email";
                               } else if (_country == null) {
+                                _showEmail();
                                 return "Please select a country";
+                              } else if (_error == 'email-already-in-use') {
+                                _showEmail();
+                                return "This email is already in use.";
                               }
+
+                              _hasError = false;
                               return null;
                             },
                             onSaved: (value) => _email = value!,
@@ -208,10 +268,21 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                             onSaved: (value) {
                               _password = value!;
                             },
+                            onChanged: (value) {
+                              if(_hasError) {
+                                _hasError = false;
+                                _error = null;
+                                _formKey3.currentState!.validate();
+                              }
+                            },
                             validator: (value) {
+                              _hasError = true;
                               if (value == null || value.isEmpty) {
                                 return "Please enter your password";
+                              } else if (_error == 'weak-password') {
+                                return "Please enter a stronger password.";
                               }
+                              _hasError = false;
                               return null;
                             },
                             label: 'Password',
@@ -223,6 +294,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                               if (value == null ||
                                   value.isEmpty ||
                                   value != _password) {
+                                _showPasswords();
                                 return "Passwords do not match";
                               }
                               return null;
@@ -236,12 +308,23 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                                 child: Align(
                                   alignment: Alignment.centerRight,
                                   child: ElevatedButton(
-                                    onPressed: () {
+                                    onPressed: () async {
                                       _formKey3.currentState!.save();
                                       if (_formKey3.currentState!.validate()) {
-                                        _provider
+                                        _error = await _provider
                                             .createUserWithEmailAndPassword(
-                                                _email, _password, _name, _username, _country!.countryCode);
+                                                _email,
+                                                _password,
+                                                _name,
+                                                _username,
+                                                _country!.countryCode);
+                                        if (_error == null) {
+                                          goToMain();
+                                        } else {
+                                          _formKey1.currentState!.validate();
+                                          _formKey2.currentState!.validate();
+                                          _formKey3.currentState!.validate();
+                                        }
                                       }
                                     },
                                     child: const Text("Sign Up"),

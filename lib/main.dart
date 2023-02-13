@@ -1,9 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:myapp/pages/login_page.dart';
 import 'package:myapp/pages/main_page.dart';
-import 'package:myapp/pages/signup_page.dart';
 import 'package:myapp/providers/main_provider.dart';
 import 'package:myapp/routes.dart';
 
@@ -53,25 +51,11 @@ class _SelectPageState extends State<SelectPage> {
 
   @override
   Widget build(BuildContext context) {
-
-    return FutureBuilder(
-      future: provider.getUser(),
-      builder: (context, AsyncSnapshot<User?> snapshot) {
-        if (snapshot.hasData) {
-          return const MainPage();
-        } else {
-          return FutureBuilder(
-            future: provider.getFirst(),
-            builder: (context, AsyncSnapshot<bool?> snapshot) {
-              if (!snapshot.hasData || snapshot.data!) {
-                return const SignUpPage();
-              }
-              return const LoginPage();
-            },
-          );
-        }
-      },
-    );
+    if(provider.getUser() != null) {
+      return const MainPage();
+    } else {
+      return const LoginPage();
+    }
 
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:myapp/widgets/password.dart';
 
 import '../providers/login_provider.dart';
@@ -22,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     push() {
-      provider.pushToMain(context);
+      context.push('/main');
     }
     return Scaffold(
       appBar: AppBar(title: const Text("Login")),

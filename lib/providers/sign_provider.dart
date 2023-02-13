@@ -1,10 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'main_provider.dart';
 
 class SignProvider {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -19,28 +16,7 @@ class SignProvider {
     return  documents.isNotEmpty;
   }
 
-  void setFirst() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(MainProvider.firstKey, false);
-  }
-
-  void backToLogin(BuildContext buildContext) {
-    buildContext.push('/login');
-  }
-
-  Color getColor(Set<MaterialState> states) {
-    const Set<MaterialState> interactiveStates = <MaterialState>{
-      MaterialState.pressed,
-      MaterialState.hovered,
-      MaterialState.focused,
-    };
-    if (states.any(interactiveStates.contains)) {
-      return Colors.black;
-    }
-    return Colors.white;
-  }
-
-  Future<void> createUserWithEmailAndPassword(
+  Future<String?> createUserWithEmailAndPassword(
       String email, String password, String name, String username, String country) async {
     try {
       UserCredential result =
@@ -51,20 +27,24 @@ class SignProvider {
       );
       User? user = result.user;
       debugPrint("Successfully created user: ${user!.uid}");
-      registerUserData(name, username, country);
-      setFirst();
-    } catch (e) {
-      debugPrint("Error creating user: $e");
+      _registerUserData(name, username, country);
+    } on FirebaseAuthException catch(e) {
+      debugPrint(e.code);
+      return e.code;
     }
+
+    return null;
 
   }
 
-  Future<void> registerUserData(
+  Future<void> _registerUserData(
       String name, String username, String country) async {
-    final userInfo = <String, String>{
+    final userInfo = <String, dynamic>{
       "name": name,
       "username": username,
-      "country": country
+      "country": country,
+      "requests": [],
+      "friends": []
     };
 
     db
