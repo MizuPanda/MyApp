@@ -6,8 +6,12 @@ class PasswordWidget extends StatefulWidget {
   final String? Function(String?)? validator;
   final String? label;
 
-
-  const PasswordWidget({super.key, this.onSaved, this.validator, required this.label, this.onChanged});
+  const PasswordWidget(
+      {super.key,
+      this.onSaved,
+      this.validator,
+      required this.label,
+      this.onChanged});
 
   @override
   State<PasswordWidget> createState() => _PasswordWidgetState();

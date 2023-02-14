@@ -13,87 +13,85 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  String? email;
-  String? password;
-
-  bool incorrectInfo = false;
-  final provider = LoginProvider();
+  LoginProvider provider = LoginProvider();
 
   @override
   Widget build(BuildContext context) {
-    push() {
-      context.push('/main');
+    pushMain() {
+      context.pushReplacement('/main');
     }
+
+    pushRegister() {
+      context.go('/signup');
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text("Login")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              TextFormField(
-                decoration: MyDecorations.registerDeco('Email'),
-                onSaved: (value) => email = value,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Email cannot be empty';
-                  } else if (incorrectInfo) {
-                    return "";
-                  }
-                  return null;
-                },
-                onChanged: (value) {
-                  if(incorrectInfo) {
-                    incorrectInfo = false;
-                    _formKey.currentState!.validate();
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              PasswordWidget(
-                  label: 'Password',
-                onSaved: (value) => password = value,
-                onChanged: (value) {
-                  if(incorrectInfo) {
-                    incorrectInfo = false;
-                    _formKey.currentState!.validate();
-                  }
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Password cannot be empty';
-                  } else if (incorrectInfo) {
-                    return "Incorrect email or password.";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () async {
-                  if(_formKey.currentState!.validate()) {
-                    _formKey.currentState!.save();
-                    incorrectInfo = await provider.submit(email!, password!);
-                    if(incorrectInfo) {
-                      _formKey.currentState!.validate();
-                    } else {
-                      push();
-                    }
-                  }
-                },
-                style: ButtonStyle(shape: MaterialStatePropertyAll(RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ))),
-                child: const Text('Login'),
-              ),
-            ],
-          ),
-        ),
+        child: AnimatedBuilder(
+            animation: provider,
+            builder: (BuildContext context, Widget? child) {
+              return Form(
+                key: provider.formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    TextFormField(
+                      decoration: MyDecorations.registerDeco('Email'),
+                      onSaved: provider.emailSaved,
+                      validator: provider.emailValidator,
+                      onChanged: provider.emailChanged,
+                    ),
+                    const SizedBox(height: 16),
+                    PasswordWidget(
+                      label: 'Password',
+                      onSaved: provider.passwordSaved,
+                      onChanged: provider.passwordChanged,
+                      validator: provider.passwordValidator,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        LogButton(
+                            onPressed: pushRegister,
+                            label: 'Create an account'),
+                        const Spacer(),
+                        LogButton(
+                          onPressed: () {
+                            provider.login(pushMain);
+                          },
+                          label: 'Login',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
       ),
     );
   }
 }
 
+class LogButton extends StatelessWidget {
+  final Function()? onPressed;
+  final String label;
+  const LogButton({
+    super.key,
+    required this.onPressed,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ButtonStyle(
+          shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ))),
+      child: Text(label),
+    );
+  }
+}

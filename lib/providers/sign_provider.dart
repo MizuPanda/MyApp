@@ -1,58 +1,214 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:myapp/models/myuser.dart';
 
+class SignProvider extends ChangeNotifier {
+  final MyUser _myUser = MyUser();
 
-class SignProvider {
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final db = FirebaseFirestore.instance;
+  final formKey1 = GlobalKey<FormState>();
+  final formKey2 = GlobalKey<FormState>();
+  final formKey3 = GlobalKey<FormState>();
 
-  Future<bool> isUsernameTaken(String username) async {
-    final QuerySnapshot result = await db
-        .collection('users')
-        .where('username', isEqualTo: username)
-        .get();
-    final List<DocumentSnapshot> documents = result.docs;
-    return  documents.isNotEmpty;
+  Country? _country;
+  late String _name, _username, _email, _password = "";
+
+  bool showNameAndUsername = true;
+  bool showEmailAndCountry = false;
+  bool showPassword = false;
+
+  late AnimationController _controller;
+
+  bool _usernameTaken = false;
+
+  String? _error;
+  bool _hasError = false;
+
+  void signUp(Function goToMain) async {
+    formKey3.currentState!.save();
+    if (formKey3.currentState!.validate()) {
+      _error = await _myUser.createUserWithEmailAndPassword(
+          _email, _password, _name, _username, _country!.countryCode);
+      notifyListeners();
+      if (_error == null) {
+        goToMain();
+      } else {
+        if (!formKey1.currentState!.validate()) {
+        } else if (!formKey2.currentState!.validate()) {
+        } else {
+          formKey3.currentState!.validate();
+        }
+        notifyListeners();
+      }
+    }
   }
 
-  Future<String?> createUserWithEmailAndPassword(
-      String email, String password, String name, String username, String country) async {
-    try {
-      UserCredential result =
-          await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+  void nextUsername() async {
+    _usernameTaken = await _myUser.isUsernameTaken(_username);
+    notifyListeners();
 
-      );
-      User? user = result.user;
-      debugPrint("Successfully created user: ${user!.uid}");
-      _registerUserData(name, username, country);
-    } on FirebaseAuthException catch(e) {
-      debugPrint(e.code);
-      return e.code;
+    if (formKey1.currentState!.validate()) {
+      showNextSection();
+    }
+  }
+
+  String getCountryText() {
+    return _country != null
+        ? "${_country!.name}  ${_country!.flagEmoji}"
+        : "Country";
+  }
+
+  void selectCountry(Country? country) {
+    _country = country;
+    notifyListeners();
+  }
+
+  void passwordChanged(String? value) {
+    if (_hasError) {
+      _hasError = false;
+      _error = null;
+      formKey3.currentState!.validate();
+      notifyListeners();
+    }
+  }
+
+  void emailChanged(String? value) {
+    if (_hasError) {
+      _error = null;
+      _hasError = false;
+      formKey2.currentState!.validate();
+      notifyListeners();
+    }
+  }
+
+  void usernameChanged(String? value) {
+    if (_usernameTaken) {
+      _usernameTaken = false;
+      formKey1.currentState!.validate();
+      notifyListeners();
+    }
+  }
+
+  void passwordSaved(String? value) {
+    _password = value!;
+    notifyListeners();
+  }
+
+  void emailSaved(String? value) {
+    _email = value!;
+    notifyListeners();
+  }
+
+  void usernameSaved(String? value) {
+    _username = value!;
+    notifyListeners();
+  }
+
+  void nameSaved(String? value) {
+    _name = value!;
+    notifyListeners();
+  }
+
+  String? passwordConfirmValidator(String? value) {
+    if (value == null || value.isEmpty || value != _password) {
+      return "Passwords do not match";
     }
 
     return null;
-
   }
 
-  Future<void> _registerUserData(
-      String name, String username, String country) async {
-    final userInfo = <String, dynamic>{
-      "name": name,
-      "username": username,
-      "country": country,
-      "requests": [],
-      "friends": []
-    };
+  String? passwordValidator(String? value) {
+    _hasError = true;
+    if (value == null || value.isEmpty) {
+      return "Please enter your password";
+    } else if (_error == 'weak-password') {
+      return "Please enter a stronger password.";
+    }
+    _hasError = false;
+    notifyListeners();
+    return null;
+  }
 
-    db
-        .collection("users")
-        .doc(_firebaseAuth.currentUser!.uid)
-        .set(userInfo)
-    .whenComplete(() => debugPrint("Successfully added the data to user: $username"))
-    .onError((e, _) => debugPrint("Error writing document: $e"));
-        
+  String? emailValidator(String? value) {
+    _hasError = true;
+
+    if (value == null || value.isEmpty || !value.contains('@')) {
+      _showEmail();
+      return "Please enter your email";
+    } else if (_country == null) {
+      _showEmail();
+      return "Please select a country";
+    } else if (_error == 'email-already-in-use') {
+      _showEmail();
+      return "This email is already in use.";
+    }
+
+    _hasError = false;
+    notifyListeners();
+    return null;
+  }
+
+  String? usernameValidator(String? value) {
+    if (value == null || value.isEmpty) {
+      _showName();
+      return "Please enter your username";
+    }
+    if (_usernameTaken) {
+      return "This username is already taken";
+    }
+    return null;
+  }
+
+  String? nameValidator(String? value) {
+    if (value == null || value.isEmpty) {
+      _showName();
+      return "Please enter your name";
+    }
+    return null;
+  }
+
+  void initController(TickerProvider vsync) {
+    _controller = AnimationController(
+      vsync: vsync,
+      duration: const Duration(milliseconds: 500),
+    );
+    notifyListeners();
+  }
+
+  void _showName() {
+    showNameAndUsername = true;
+    showEmailAndCountry = false;
+    showPassword = false;
+    notifyListeners();
+  }
+
+  void _showEmail() {
+    showNameAndUsername = false;
+    showEmailAndCountry = true;
+    showPassword = false;
+    notifyListeners();
+  }
+
+  void showLastSection() {
+    if (showPassword) {
+      showPassword = false;
+      showEmailAndCountry = true;
+    } else if (showEmailAndCountry) {
+      showEmailAndCountry = false;
+      showNameAndUsername = true;
+    }
+    _controller.reverse();
+    notifyListeners();
+  }
+
+  void showNextSection() {
+    if (showNameAndUsername) {
+      showNameAndUsername = false;
+      showEmailAndCountry = true;
+    } else if (showEmailAndCountry) {
+      showEmailAndCountry = false;
+      showPassword = true;
+    }
+    _controller.forward();
+    notifyListeners();
   }
 }

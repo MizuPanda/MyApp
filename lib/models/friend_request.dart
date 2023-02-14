@@ -4,8 +4,9 @@ import 'package:flutter/cupertino.dart';
 
 class FriendRequest {
   final FirebaseAuth fb = FirebaseAuth.instance;
-  final CollectionReference collection = FirebaseFirestore.instance.collection('users');
-  
+  final CollectionReference collection =
+      FirebaseFirestore.instance.collection('users');
+
   Future<void> sendFriendRequest(String receiverUsername) async {
     // Add the sender's ID to the receiver's requests
     User user = fb.currentUser!;
@@ -49,7 +50,8 @@ class FriendRequest {
         .collection('friendships')
         .doc(ids.first + ids.last)
         .set(friendshipInfo)
-        .whenComplete(() => debugPrint("Successfully added the data to friendship."))
+        .whenComplete(
+            () => debugPrint("Successfully added the data to friendship."))
         .onError((e, _) => debugPrint("Error writing document: $e"));
   }
 
@@ -59,8 +61,7 @@ class FriendRequest {
         .get()
         .then((querySnapshot) {
       return querySnapshot.docs.first;
-    }
-    );
+    });
     return userSnapshot;
   }
 }
