@@ -3,14 +3,19 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 
 class MyUser {
-  final FirebaseAuth _fb = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static final FirebaseAuth _fb = FirebaseAuth.instance;
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  User? getUser() {
+  static User? getUser() {
     return _fb.currentUser;
   }
 
-  Future<bool> isUsernameTaken(String username) async {
+  static void setDeviceId() {
+
+  }
+
+
+  static Future<bool> isUsernameTaken(String username) async {
     final QuerySnapshot result = await _db
         .collection('users')
         .where('username', isEqualTo: username)
@@ -19,7 +24,7 @@ class MyUser {
     return documents.isNotEmpty;
   }
 
-  Future<String?> createUserWithEmailAndPassword(String email, String password,
+  static Future<String?> createUserWithEmailAndPassword(String email, String password,
       String name, String username, String country) async {
     try {
       UserCredential result = await _fb.createUserWithEmailAndPassword(
@@ -37,12 +42,13 @@ class MyUser {
     return null;
   }
 
-  Future<void> _registerUserData(
-      String name, String username, String country) async {
+  static Future<void> _registerUserData(
+      String name, String username, String countryCode) async {
     final userInfo = <String, dynamic>{
       "name": name,
       "username": username,
-      "country": country,
+      "country": countryCode,
+
       "requests": [],
       "friends": []
     };

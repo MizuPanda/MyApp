@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:myapp/pages/screens/linking_screen.dart';
 
 import '../models/friend.dart';
 
@@ -29,6 +30,22 @@ class FriendProvider extends ChangeNotifier {
     'November',
     'December'
   ];
+
+  void showLinkingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: const LinkingScreen(),
+        );
+      },
+    );
+  }
+
+
 
   int length() {
     return _filteredFriends.length;

@@ -12,7 +12,7 @@ class Friend {
   late ImageProvider photo;
   late Friendship friendship;
 
-  static final User _user = MyUser().getUser()!;
+  static final User _user = MyUser.getUser()!;
   static final _db = FirebaseFirestore.instance;
 
   Friend({required this.id}) {

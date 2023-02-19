@@ -4,12 +4,27 @@ import 'package:myapp/pages/login_page.dart';
 import 'package:myapp/pages/main_page.dart';
 import 'package:myapp/providers/main_provider.dart';
 import 'package:myapp/routes.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  checkPerm();
 
   runApp(const MyApp());
+}
+
+checkPerm() async {
+  await Permission.bluetoothScan.request();
+  await Permission.bluetoothConnect.request();
+
+  if (await Permission.bluetooth.status.isPermanentlyDenied) {
+    openAppSettings();
+  }
 }
 
 class MyApp extends StatefulWidget {

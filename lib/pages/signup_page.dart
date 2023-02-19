@@ -25,7 +25,7 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     void goToMain() {
-      context.push('/main');
+      context.pushReplacement('/main');
     }
 
     return AnimatedBuilder(

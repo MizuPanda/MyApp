@@ -3,6 +3,8 @@ import 'package:myapp/providers/friends_provider.dart';
 
 import 'package:flutter_animation_progress_bar/flutter_animation_progress_bar.dart';
 
+import '../../widgets/expandable.dart';
+
 class FriendsPage extends StatefulWidget {
   const FriendsPage({super.key});
 
@@ -10,48 +12,49 @@ class FriendsPage extends StatefulWidget {
   State<FriendsPage> createState() => _FriendsPageState();
 }
 
-class _FriendsPageState extends State<FriendsPage> {
-  final FriendProvider provider = FriendProvider();
+class _FriendsPageState extends State<FriendsPage> with AutomaticKeepAliveClientMixin {
+  final FriendProvider _provider = FriendProvider();
 
   @override
   void initState() {
-    provider.getFriendList();
+    _provider.getFriendList();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: AppBar(
         title: TextField(
-            controller: provider.searchController,
+            controller: _provider.searchController,
             decoration: InputDecoration(
               fillColor: Colors.white,
               filled: true,
               hintText: 'Search friends',
               suffixIcon: IconButton(
                 icon: const Icon(Icons.clear),
-                onPressed: provider.clear,
+                onPressed: _provider.clear,
               ),
             ),
-            onChanged: provider.search),
+            onChanged: _provider.search),
       ),
       body: Stack(
         children: [
           AnimatedBuilder(
-              animation: provider,
+              animation: _provider,
               builder: (BuildContext context, Widget? child) {
                 return ListView.builder(
-                  itemCount: provider.length(),
+                  itemCount: _provider.length(),
                   itemBuilder: (context, index) {
                     return Column(
                       children: [
                         ListTile(
                           leading: CircleAvatar(
-                            backgroundImage: provider.photo(index),
+                            backgroundImage: _provider.photo(index),
                           ),
-                          title: Text(provider.name(index)),
-                          subtitle: Text(provider.username(index)),
+                          title: Text(_provider.name(index)),
+                          subtitle: Text(_provider.username(index)),
                           trailing: SizedBox(
                             width: 200,
                             child: Column(
@@ -59,14 +62,14 @@ class _FriendsPageState extends State<FriendsPage> {
                                 Align(
                                     alignment: Alignment.centerRight,
                                     child:
-                                        Text('Lvl ${provider.level(index)}')),
+                                        Text('Lvl ${_provider.level(index)}')),
                                 const Spacer(),
                                 const Align(
                                     alignment: Alignment.centerRight,
                                     child: Text('Last seen')),
                                 Align(
                                     alignment: Alignment.centerRight,
-                                    child: Text(provider.lastSeen(index)))
+                                    child: Text(_provider.lastSeen(index)))
                               ],
                             ),
                           ),
@@ -80,7 +83,7 @@ class _FriendsPageState extends State<FriendsPage> {
                                 Colors.blueAccent,
                                 Colors.lightBlueAccent,
                               ]),
-                              currentValue: provider.progress(index),
+                              currentValue: _provider.progress(index),
                               maxValue: 10,
                             )),
                       ],
@@ -91,13 +94,32 @@ class _FriendsPageState extends State<FriendsPage> {
           Container(
             alignment: Alignment.bottomRight,
             padding: const EdgeInsets.all(10),
-            child: FloatingActionButton(
-              onPressed: () {},
-              child: const Icon(Icons.add),
+            child: ExpandableFab(
+              distance: 112.0,
+              children: [
+                ActionButton(
+                  onPressed: () {
+                    _provider.showLinkingDialog(context);
+                  },
+                  icon: const Icon(Icons.flash_on),
+                ),
+                ActionButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.thunderstorm),
+                ),
+                ActionButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.book),
+                ),
+              ],
             ),
           )
         ],
       ),
     );
   }
+
+  @override
+  // TODO: implement wantKeepAlive
+  bool get wantKeepAlive => true;
 }

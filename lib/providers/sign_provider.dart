@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:myapp/models/myuser.dart';
 
 class SignProvider extends ChangeNotifier {
-  final MyUser _myUser = MyUser();
-
   final formKey1 = GlobalKey<FormState>();
   final formKey2 = GlobalKey<FormState>();
   final formKey3 = GlobalKey<FormState>();
@@ -23,10 +21,11 @@ class SignProvider extends ChangeNotifier {
   String? _error;
   bool _hasError = false;
 
+
   void signUp(Function goToMain) async {
     formKey3.currentState!.save();
     if (formKey3.currentState!.validate()) {
-      _error = await _myUser.createUserWithEmailAndPassword(
+      _error = await MyUser.createUserWithEmailAndPassword(
           _email, _password, _name, _username, _country!.countryCode);
       notifyListeners();
       if (_error == null) {
@@ -43,7 +42,7 @@ class SignProvider extends ChangeNotifier {
   }
 
   void nextUsername() async {
-    _usernameTaken = await _myUser.isUsernameTaken(_username);
+    _usernameTaken = await MyUser.isUsernameTaken(_username);
     notifyListeners();
 
     if (formKey1.currentState!.validate()) {

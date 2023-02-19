@@ -5,8 +5,6 @@ import '../models/myuser.dart';
 import '../pages/views/friends_view.dart';
 
 class MainProvider extends ChangeNotifier {
-  final MyUser myUser = MyUser();
-
   int selectedIndex = 2;
   final pageViewController = PageController(initialPage: 2);
 
@@ -51,6 +49,6 @@ class MainProvider extends ChangeNotifier {
   }
 
   User? getUser() {
-    return myUser.getUser();
+    return MyUser.getUser();
   }
 }
