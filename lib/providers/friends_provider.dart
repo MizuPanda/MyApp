@@ -8,7 +8,7 @@ class FriendProvider extends ChangeNotifier {
   late List<Friend> _filteredFriends = [];
   final searchController = TextEditingController();
 
-  final List<String> week = [
+  final List<String> _week = [
     'Monday',
     'Tuesday',
     'Wednesday',
@@ -16,7 +16,7 @@ class FriendProvider extends ChangeNotifier {
     'Friday',
     'Saturday'
   ];
-  final List<String> month = [
+  final List<String> _month = [
     'January',
     'February',
     'March',
@@ -53,7 +53,7 @@ class FriendProvider extends ChangeNotifier {
 
   String lastSeen(int index) {
     DateTime dateTime = _filteredFriends[index].friendship.lastSeen.toLocal();
-    return '${week[dateTime.weekday - 1]}, ${month[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
+    return '${_week[dateTime.weekday - 1]}, ${_month[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
   }
 
   ImageProvider photo(int index) {
@@ -95,7 +95,7 @@ class FriendProvider extends ChangeNotifier {
     List<Friend> friends = [];
     for (String id in friendsID) {
       Friend friend = Friend(id: id);
-      await friend.setName();
+      await friend.awaitFriend();
       friends.add(friend);
     }
 

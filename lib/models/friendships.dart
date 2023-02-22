@@ -16,7 +16,7 @@ class Friendship {
     ids.sort();
   }
 
-  Future<void> setFriendship() async {
+  Future<void> awaitFriendship() async {
     DocumentSnapshot friendship =
         await _collection.doc(ids.first + ids.last).get();
     progress = friendship.get('progress').toDouble();

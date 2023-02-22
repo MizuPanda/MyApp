@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:myapp/providers/linking_provider.dart';
+import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
 import 'package:myapp/providers/nearby_provider.dart';
 
 class LinkingScreen extends StatefulWidget {
@@ -11,46 +11,39 @@ class LinkingScreen extends StatefulWidget {
 }
 
 class _LinkingScreenState extends State<LinkingScreen> {
-  final LinkingProvider _provider = LinkingProvider();
+  final FlutterBlePeripheral _peripheral = FlutterBlePeripheral();
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _provider,
-      builder: (BuildContext context, Widget? child) {
-        return Container(
-          height: 400.0,
-          width: 300.0,
-          padding: const EdgeInsets.all(20.0),
-          child: FutureBuilder(
-              future: _provider.flutterBlue.isOn,
-              builder: (BuildContext context, AsyncSnapshot snapshot) {
-                if (snapshot.hasData && snapshot.data == true) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: const <Widget>[
-                      Text(
-                        'Linking',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20.0,
-                        ),
-                      ),
-                      NearbyDevicesList(),
-                      SizedBox(height: 20.0),
-                      // Add your linking form widgets here
-                    ],
-                  );
-                } else {
-                  return Center(
-                    child: TextButton(
-                      onPressed: _provider.enableBluetooth,
-                      child: const Text("Connect to Bluetooth"),
+    return Container(
+      height: 400.0,
+      width: 300.0,
+      padding: const EdgeInsets.all(20.0),
+      child: FutureBuilder(
+        future: _peripheral.enableBluetooth(),
+          builder: (BuildContext context, AsyncSnapshot snapshot) {
+            if (snapshot.hasData && snapshot.data == true) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: const <Widget>[
+                  Text(
+                    'Linking',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20.0,
                     ),
-                  );
-                }
-              }),
-        );
-      },
+                  ),
+                  NearbyDevicesList(),
+                  SizedBox(height: 20.0),
+                  // Add your linking form widgets here
+                ],
+              );
+            } else {
+              return const SizedBox(width: 20,
+                  height: 20,
+                  child: Center(child: CircularProgressIndicator())
+              );
+            }
+          }),
     );
   }
 }
@@ -91,11 +84,16 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
           return ListView.builder(
             itemCount: _provider.length(),
             itemBuilder: (context, index) {
-              final device = _provider.device(index);
               return ListTile(
-                leading: const Icon(Icons.bluetooth),
-                title: Text(device.name),
-                subtitle: Text(device.id),
+                leading: const Icon(Icons.bluetooth_rounded),
+                title: Text(_provider.name(index)),
+                subtitle: Column(
+                  children: [
+                    Text(_provider.username(index)),
+                    Text(_provider.isFriend(index)? "Your Friend": "Not Friend")
+                  ],
+                ),
+                trailing: Text('S.LVL ${_provider.socialLevel(index)}'),
                 onTap: () {
                   _provider.onTap(index);
                 },

@@ -7,6 +7,7 @@ import 'package:myapp/routes.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'firebase_options.dart';
+import 'models/myuser.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,7 @@ void main() async {
 checkPerm() async {
   await Permission.bluetoothScan.request();
   await Permission.bluetoothConnect.request();
+  await Permission.bluetoothAdvertise.request();
 
   if (await Permission.bluetooth.status.isPermanentlyDenied) {
     openAppSettings();
@@ -65,7 +67,7 @@ class _SelectPageState extends State<SelectPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (provider.getUser() != null) {
+    if (MyUser.getUser() != null) {
       return const MainPage();
     } else {
       return const LoginPage();

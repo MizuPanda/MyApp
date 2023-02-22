@@ -12,34 +12,28 @@ class Friend {
   late ImageProvider photo;
   late Friendship friendship;
 
-  static final User _user = MyUser.getUser()!;
-  static final _db = FirebaseFirestore.instance;
+  static final _fb = FirebaseAuth.instance;
 
   Friend({required this.id}) {
     photo = const NetworkImage('https://picsum.photos/200');
-    var ids = [_user.uid, id];
+    var ids = [_fb.currentUser!.uid, id];
     ids.sort();
     friendship = Friendship(ids: ids);
   }
 
-  Future<String> setName() async {
-    DocumentSnapshot docs = await _getUserData(id);
+  Future<String> awaitFriend() async {
+    DocumentSnapshot docs = await MyUser.getUserData(id);
 
     name = docs.get('name');
     username = docs.get('username');
 
-    await friendship.setFriendship();
+    await friendship.awaitFriendship();
     return name;
   }
 
   static Future<List<dynamic>> getFriendsID() async {
-    DocumentSnapshot docs = await _getUserData(_user.uid);
-    return docs.get('friends');
+    Player player = await MyUser.getInstance();
+    return player.friendsID;
   }
 
-  static Future<DocumentSnapshot> _getUserData(String id) async {
-    DocumentSnapshot docs = await _db.collection('users').doc(id).get();
-
-    return docs;
-  }
 }

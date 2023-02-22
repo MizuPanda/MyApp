@@ -1,7 +1,5 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 
-import '../models/myuser.dart';
 import '../pages/views/friends_view.dart';
 
 class MainProvider extends ChangeNotifier {
@@ -46,9 +44,5 @@ class MainProvider extends ChangeNotifier {
     pageViewController.animateToPage(index,
         duration: const Duration(milliseconds: 200), curve: Curves.bounceOut);
     notifyListeners();
-  }
-
-  User? getUser() {
-    return MyUser.getUser();
   }
 }

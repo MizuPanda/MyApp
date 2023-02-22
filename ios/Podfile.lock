@@ -41,6 +41,8 @@ PODS:
   - FirebaseFirestore/WithLeveldb (10.3.0):
     - FirebaseFirestore/Base
   - Flutter (1.0.0)
+  - flutter_ble_peripheral (0.0.3):
+    - Flutter
   - flutter_blue (0.0.1):
     - Flutter
     - flutter_blue/Protos (= 0.0.1)
@@ -85,6 +87,7 @@ DEPENDENCIES:
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - FirebaseFirestore (from `https://github.com/invertase/firestore-ios-sdk-frameworks.git`, tag `10.3.0`)
   - Flutter (from `Flutter`)
+  - flutter_ble_peripheral (from `.symlinks/plugins/flutter_ble_peripheral/ios`)
   - flutter_blue (from `.symlinks/plugins/flutter_blue/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - reactive_ble_mobile (from `.symlinks/plugins/reactive_ble_mobile/ios`)
@@ -116,6 +119,8 @@ EXTERNAL SOURCES:
     :tag: 10.3.0
   Flutter:
     :path: Flutter
+  flutter_ble_peripheral:
+    :path: ".symlinks/plugins/flutter_ble_peripheral/ios"
   flutter_blue:
     :path: ".symlinks/plugins/flutter_blue/ios"
   permission_handler_apple:
@@ -139,6 +144,7 @@ SPEC CHECKSUMS:
   FirebaseCoreInternal: e463f41bb935cd049505bf7e9a5bdd7dcea90df6
   FirebaseFirestore: ef5e47e1489c03dc978f94e8b43ad5f67a77df8c
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
+  flutter_ble_peripheral: e12ab87914fc1690b22bb26649e4f6698625f425
   flutter_blue: eeb381dc4727a0954dede73515f683865494b370
   GoogleUtilities: c2bdc4cf2ce786c4d2e6b3bcfd599a25ca78f06f
   GTMSessionFetcher: c9e714f7eec91a55641e2bab9f45fd83a219b882

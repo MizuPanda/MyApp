@@ -48,12 +48,9 @@ dependencies:
   flutter_animation_progress_bar: ^2.3.1
 
   flutter_reactive_ble: ^5.0.3
-  bluetooth_enable_fork: ^0.1.6
-  flutter_blue: ^0.8.0
+  flutter_ble_peripheral: ^1.1.1
 
   permission_handler: ^10.2.0
-  #shared_preferences: ^2.0.17
-  #device_info_plus: ^8.1.0
 
 dev_dependencies:
   flutter_test:
