@@ -1,13 +1,15 @@
-import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:myapp/models/myuser.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+
 
 class SignProvider extends ChangeNotifier {
   final formKey1 = GlobalKey<FormState>();
   final formKey2 = GlobalKey<FormState>();
   final formKey3 = GlobalKey<FormState>();
 
-  Country? _country;
+
   late String _name, _username, _email, _password = "";
 
   bool showNameAndUsername = true;
@@ -22,11 +24,22 @@ class SignProvider extends ChangeNotifier {
   bool _hasError = false;
 
 
+  Future<String?> getCountryCode() async {
+    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
+    debugPrint('location: ${position.latitude}');
+    final address = await placemarkFromCoordinates(position.latitude, position.longitude);
+    String? countryCode = address.first.isoCountryCode;
+
+    return countryCode;
+  }
+
   void signUp(Function goToMain) async {
     formKey3.currentState!.save();
+    String? countryCode = await getCountryCode();
+
     if (formKey3.currentState!.validate()) {
       _error = await MyUser.createUserWithEmailAndPassword(
-          _email, _password, _name, _username, _country!.countryCode);
+          _email, _password, _name, _username, countryCode!);
       notifyListeners();
       if (_error == null) {
         goToMain();
@@ -48,17 +61,6 @@ class SignProvider extends ChangeNotifier {
     if (formKey1.currentState!.validate()) {
       showNextSection();
     }
-  }
-
-  String getCountryText() {
-    return _country != null
-        ? "${_country!.name}  ${_country!.flagEmoji}"
-        : "Country";
-  }
-
-  void selectCountry(Country? country) {
-    _country = country;
-    notifyListeners();
   }
 
   void passwordChanged(String? value) {
@@ -133,9 +135,6 @@ class SignProvider extends ChangeNotifier {
     if (value == null || value.isEmpty || !value.contains('@')) {
       _showEmail();
       return "Please enter your email";
-    } else if (_country == null) {
-      _showEmail();
-      return "Please select a country";
     } else if (_error == 'email-already-in-use') {
       _showEmail();
       return "This email is already in use.";

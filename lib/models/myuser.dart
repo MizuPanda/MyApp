@@ -31,8 +31,8 @@ class MyUser {
       DocumentSnapshot userData = await getUserData(getUser()!.uid);
       String username = userData.get('username');
       List<dynamic> friendsID = userData.get('friends');
-      int id = userData.get('counter');
-      _instance = Player(username: username, friendsID:  friendsID, id: id);
+      int counter = userData.get('counter');
+      _instance = Player(username: username, friendsID:  friendsID, counter: counter);
     }
     return _instance!;
   }
@@ -88,7 +88,7 @@ class MyUser {
       'counter': counter,
       "country": countryCode,
       "socialLevel": 0,
-      "requests": [],
+      "requestId": '',
       "friends": []
     };
 
@@ -105,7 +105,7 @@ class MyUser {
 class Player {
   String username;
   List<dynamic> friendsID;
-  int id;
+  int counter;
 
-  Player({required this.username, required this.friendsID, required this.id});
+  Player({required this.username, required this.friendsID, required this.counter});
 }

@@ -1,7 +1,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
+import 'package:myapp/widgets/charging_bolt.dart';
 import 'package:myapp/providers/nearby_provider.dart';
+
+import '../../widgets/progress_indactor.dart';
 
 class LinkingScreen extends StatefulWidget {
   const LinkingScreen({Key? key}) : super(key: key);
@@ -11,6 +14,11 @@ class LinkingScreen extends StatefulWidget {
 }
 
 class _LinkingScreenState extends State<LinkingScreen> {
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   final FlutterBlePeripheral _peripheral = FlutterBlePeripheral();
   @override
   Widget build(BuildContext context) {
@@ -24,32 +32,31 @@ class _LinkingScreenState extends State<LinkingScreen> {
             if (snapshot.hasData && snapshot.data == true) {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: const <Widget>[
-                  Text(
+                children:  <Widget>[
+                  const Text(
                     'Linking',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20.0,
                     ),
                   ),
-                  NearbyDevicesList(),
-                  SizedBox(height: 20.0),
+                  NearbyDevicesList(disposeSuper: dispose,),
+                  const SizedBox(height: 20.0),
                   // Add your linking form widgets here
                 ],
               );
             } else {
-              return const SizedBox(width: 20,
-                  height: 20,
-                  child: Center(child: CircularProgressIndicator())
-              );
+              return const MyCircularProgress();
             }
           }),
     );
   }
 }
 
+
 class NearbyDevicesList extends StatefulWidget {
-  const NearbyDevicesList({super.key});
+  final VoidCallback disposeSuper;
+  const NearbyDevicesList({required this.disposeSuper,super.key});
 
   @override
   State<NearbyDevicesList> createState() => _NearbyDevicesListState();
@@ -81,6 +88,7 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
       child:  AnimatedBuilder(
         animation: _provider,
         builder: (BuildContext context, Widget? child) {
+          if(!_provider.isAwaitingPairing) {
           return ListView.builder(
             itemCount: _provider.length(),
             itemBuilder: (context, index) {
@@ -100,6 +108,23 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
               );
             },
           );
+          } else {
+            return FutureBuilder(
+              future: _provider.awaitPairing(),
+                builder: (BuildContext context, AsyncSnapshot snapshot) {
+                if(!snapshot.hasData) {
+                  return const ChargingBolt(height: 100, width: 100);
+                } else if (!snapshot.data) {
+                  _provider.awaitPairing();
+                  return const MyCircularProgress();
+                } else {
+                  _provider.acceptPairing();
+                  widget.disposeSuper;
+                  return const MyCircularProgress();
+                }
+                }
+            );
+          }
         },
       ),
     );

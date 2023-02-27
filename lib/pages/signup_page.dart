@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:country_picker/country_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:myapp/providers/sign_provider.dart';
 
@@ -93,21 +92,6 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                                   onChanged: _provider.emailChanged,
                                   validator: _provider.emailValidator,
                                   onSaved: _provider.emailSaved,
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    showCountryPicker(
-                                      context: context,
-                                      showSearch: false,
-                                      showPhoneCode: false,
-                                      // optional. Shows phone code before the country name.
-                                      onSelect: _provider.selectCountry,
-                                    );
-                                  },
-                                  child: Text(
-                                    _provider.getCountryText(),
-                                    style: const TextStyle(color: Colors.black),
-                                  ),
                                 ),
                                 const SizedBox(height: 20.0),
                                 Row(

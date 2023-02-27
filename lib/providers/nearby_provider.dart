@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
+import 'package:myapp/models/friend_request.dart';
 
 import '../models/myuser.dart';
 
@@ -12,6 +13,8 @@ class NearbyProvider extends ChangeNotifier {
   final _ble = FlutterReactiveBle();
   final _scannedDevices = <ScannedDevice>[];
   final app = "myapp0";
+  bool isAwaitingPairing = false;
+  ScannedDevice? _lastDevice;
 
   String _getAppCode() {
     String base = '';
@@ -63,7 +66,7 @@ class NearbyProvider extends ChangeNotifier {
     final Player player = await MyUser.getInstance();
 
 // Create a custom AdvertiseData
-    String serviceUuid = _serviceUuid(player.id);
+    String serviceUuid = _serviceUuid(player.counter);
 
     debugPrint("uuid: $serviceUuid");
     final advertiser = AdvertiseData(
@@ -104,30 +107,30 @@ class NearbyProvider extends ChangeNotifier {
     _scanSubscription = null;
     final peripheral = FlutterBlePeripheral();
     peripheral.stop();
+    if(isAwaitingPairing && _lastDevice != null) {
+      FriendRequest.removeFriendRequest();
+      _lastDevice = null;
+      isAwaitingPairing = false;
+      notifyListeners();
+    }
   }
 
-  void onTap(int index) {
-    DiscoveredDevice device = _scannedDevices[index].device;
-    // Inside the onTap function of your list ite
-    _ble.connectToAdvertisingDevice(
-      id: device.id,
-      withServices: [],
-      connectionTimeout: const Duration(seconds:  2),
-      prescanDuration: const Duration(seconds: 5),
-    ).listen((connection) {
-      if (connection.connectionState == DeviceConnectionState.connected) {
-        // The device is now connected, you can proceed with sending data to it
-        // or do other operations as needed.
-        // ...
-        debugPrint(connection.connectionState.name);
-      } else if (connection.connectionState == DeviceConnectionState.disconnected) {
-        // The device has been disconnected. You may want to show a message
-        // to the user or attempt to reconnect.
-        // ...
-      }
-    }
-    );
+  Future<void> onTap(int index) async {
+    _lastDevice = _scannedDevices[index];
+    String friendUsername = _lastDevice!.username;
+    FriendRequest.sendFriendRequest(friendUsername);
+    isAwaitingPairing = true;
+    notifyListeners();
+  }
 
+  Future<bool> awaitPairing() async {
+    String friendUsername = _lastDevice!.username;
+
+    return FriendRequest.verifyRequestId(friendUsername);
+  }
+
+  void acceptPairing() async {
+    await FriendRequest.acceptFriendRequest();
   }
 
 }
