@@ -33,7 +33,7 @@ class SignProvider extends ChangeNotifier {
     return countryCode;
   }
 
-  void signUp(Function goToMain) async {
+  void signUp() async {
     formKey3.currentState!.save();
     String? countryCode = await getCountryCode();
 
@@ -41,9 +41,7 @@ class SignProvider extends ChangeNotifier {
       _error = await MyUser.createUserWithEmailAndPassword(
           _email, _password, _name, _username, countryCode!);
       notifyListeners();
-      if (_error == null) {
-        goToMain();
-      } else {
+      if (_error != null) {
         if (!formKey1.currentState!.validate()) {
         } else if (!formKey2.currentState!.validate()) {
         } else {

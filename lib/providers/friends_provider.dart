@@ -93,11 +93,11 @@ class FriendProvider extends ChangeNotifier {
   void getFriendList() async {
     List<dynamic> friendsID = await Friend.getFriendsID();
     List<Friend> friends = [];
-    for (String id in friendsID) {
-      Friend friend = Friend(id: id);
-      await friend.awaitFriend();
-      friends.add(friend);
-    }
+      for (String id in friendsID) {
+        Friend friend = Friend(id: id);
+        await friend.awaitFriend();
+        friends.add(friend);
+      }
 
     _friendList = friends;
     _filteredFriends = _friendList;

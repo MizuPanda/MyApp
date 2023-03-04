@@ -13,13 +13,13 @@ class FriendRequest {
     User user = _fb.currentUser!;
     String senderId = user.uid;
     DocumentSnapshot receiver = await _getUserByUsername(receiverUsername);
-    await _collection.doc(receiver.id).set({
+    await _collection.doc(receiver.id).update({
       'requestId': senderId
     });
   }
 
   static Future<void> removeFriendRequest() async {
-      await _collection.doc(MyUser.getUser()!.uid).set({
+      await _collection.doc(MyUser.getUser()!.uid).update({
         'requestId': ''
       });
   }
@@ -40,24 +40,33 @@ class FriendRequest {
     return (senderRequest == receiverData.id) && (receiverRequest == senderId);
   }
 
-  static Future<void> acceptFriendRequest() async {
+  static Future<void> acceptFriendRequest(String friendUsername) async {
     User user = _fb.currentUser!;
     String userId = user.uid;
 
     //Get requestId
     DocumentSnapshot senderData = await _collection.doc(userId).get();
-    String requestId = senderData.get('requestId');
+    String requestId = senderData.data().toString().contains('requestId') ? senderData.get('requestId') : '';
 
-    // Set requestId to none
-    removeFriendRequest();
+    if(requestId.isNotEmpty) {
+      // Set requestId to none
+      removeFriendRequest();
+      DocumentSnapshot friendDoc = await _getUserByUsername(friendUsername);
+      await _collection.doc(friendDoc.id).update({
+        'requestId': ''
+      });
 
-    // Add the request ID to the friends list
-    await _collection.doc(requestId).update({
-      'friends': FieldValue.arrayUnion([userId])
-    });
+      // Add the request ID to the friends list
+      await _collection.doc(requestId).update({
+        'friends': FieldValue.arrayUnion([userId])
+      });
+      await _collection.doc(userId).update({
+        'friends': FieldValue.arrayUnion([requestId])
+      });
 
-    //Create a new friendship
-    createFriendship(requestId);
+      //Create a new friendship
+      createFriendship(requestId);
+    }
   }
 
   static void createFriendship(String receiverId) async {

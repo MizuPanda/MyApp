@@ -23,6 +23,7 @@ checkPerm() async {
   await Permission.bluetoothScan.request();
   await Permission.bluetoothConnect.request();
   await Permission.bluetoothAdvertise.request();
+  await Permission.locationWhenInUse.request();
 
   if (await Permission.bluetooth.status.isPermanentlyDenied) {
     openAppSettings();

@@ -45,7 +45,7 @@ class _ChargingBoltState extends State<ChargingBolt>
           height: _heightAnimation.value,
           decoration: const BoxDecoration(
             image: DecorationImage(
-              image: AssetImage('assets/lightning.webp'),
+              image: AssetImage('lib/assets/lightning.png'),
               fit: BoxFit.contain,
             ),
           ),

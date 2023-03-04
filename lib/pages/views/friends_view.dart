@@ -26,6 +26,7 @@ class _FriendsPageState extends State<FriendsPage> with AutomaticKeepAliveClient
     super.build(context);
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: TextField(
             controller: _provider.searchController,
             decoration: InputDecoration(
@@ -53,10 +54,10 @@ class _FriendsPageState extends State<FriendsPage> with AutomaticKeepAliveClient
                           leading: CircleAvatar(
                             backgroundImage: _provider.photo(index),
                           ),
-                          title: Text(_provider.name(index)),
+                          title: Text(maxLines: 1, _provider.name(index)),
                           subtitle: Text(_provider.username(index)),
                           trailing: SizedBox(
-                            width: 200,
+                            width: 175,
                             child: Column(
                               children: [
                                 Align(

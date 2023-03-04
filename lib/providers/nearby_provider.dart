@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
 import 'package:myapp/models/friend_request.dart';
@@ -16,6 +17,7 @@ class NearbyProvider extends ChangeNotifier {
   bool isAwaitingPairing = false;
   ScannedDevice? _lastDevice;
 
+
   String _getAppCode() {
     String base = '';
     for(int i = 0; i < app.length; i++) {
@@ -24,6 +26,19 @@ class NearbyProvider extends ChangeNotifier {
 
     return base;
   }
+
+  String _getAppUuid() {
+    String base = _getAppCode();
+
+    String first = '${base.substring(0,8)}-';
+    String middle = '${base.substring(8, 12)}-';
+    String last = base.substring(12,16);
+
+
+    return first+middle+last;
+  }
+
+
   StreamSubscription? _scanSubscription;
 
   String _serviceUuid(int counter) {
@@ -61,7 +76,7 @@ class NearbyProvider extends ChangeNotifier {
     return _scannedDevices.length;
   }
 
-  void _startAdvertising() async {
+  Future<void> _startAdvertising() async {
     final peripheral = FlutterBlePeripheral();
     final Player player = await MyUser.getInstance();
 
@@ -77,36 +92,68 @@ class NearbyProvider extends ChangeNotifier {
     await peripheral.start(advertiseData: advertiser);
   }
 
-  void startScanning() {
-    _startAdvertising();
-    _scanSubscription = _ble.scanForDevices(
-      withServices: [],
-      scanMode: ScanMode.lowPower,
-    ).listen((scanResult) async {
-      if (_scannedDevices.every((element) => element.device.id != scanResult.id)) {
-        if(scanResult.serviceUuids.isNotEmpty) {
-          String uuid = scanResult.serviceUuids.first.toString();
-          if(uuid.contains(_getAppCode())) {
-            String string = uuid.substring(19).replaceFirst('-', '');
-            int counter = int.parse(string);
-            DocumentSnapshot? scannedUserData = await MyUser.getUserByCounter(counter);
+  Future<void> continueScanning() async {
+  }
 
-            if(scannedUserData != null) {
-              ScannedDevice scannedDevice = ScannedDevice(userData: scannedUserData, device: scanResult);
-              _scannedDevices.add(scannedDevice);
-              notifyListeners();
+  Future<void> startScanning() async {
+    await _startAdvertising();
+    String appUuid = _getAppUuid();
+
+    _scanSubscription = _ble.scanForDevices(
+      requireLocationServicesEnabled: true,
+      withServices: [],
+      scanMode: ScanMode.balanced,
+    ).listen((scanResult) async {
+       // debugPrint('name: ${scanResult.name}');
+        //debugPrint('uuid: ${scanResult.serviceUuids}');
+        if(scanResult.serviceUuids.isNotEmpty) {
+         // debugPrint('uuid: ${scanResult.serviceUuids}');
+
+          String uuid = scanResult.serviceUuids.first.toString();
+          if(uuid.contains(appUuid)) {
+            if(_scannedDevices.every((element) => element.device.serviceUuids.first.toString() != uuid)) {
+              String string = uuid.substring(19).replaceFirst('-', '');
+              int counter = int.parse(string);
+              debugPrint('counter is $counter');
+              DocumentSnapshot? scannedUserData = await MyUser.getUserByCounter(
+                  counter);
+
+              if (scannedUserData != null) {
+                ScannedDevice scannedDevice = ScannedDevice(
+                    userData: scannedUserData, device: scanResult);
+                if(_scannedDevices.every((element) => element.username != scannedDevice.username)) {
+                  _scannedDevices.add(scannedDevice);
+                  notifyListeners();
+                }
+              }
             }
           }
         }
+    }
+    );
+      await Future.delayed(const Duration(seconds: 7), () {
+        if (_scanSubscription != null) {
+          debugPrint('Timeout');
+          _scanSubscription?.cancel();
+          _scanSubscription = null;
+          final peripheral = FlutterBlePeripheral();
+          peripheral.stop();
+
+          startScanning();
+        }
       }
-    });
+      );
+
   }
 
   void stopScanning() {
+    _scannedDevices.clear();
+
     _scanSubscription?.cancel();
     _scanSubscription = null;
     final peripheral = FlutterBlePeripheral();
     peripheral.stop();
+    notifyListeners();
     if(isAwaitingPairing && _lastDevice != null) {
       FriendRequest.removeFriendRequest();
       _lastDevice = null;
@@ -115,7 +162,8 @@ class NearbyProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> onTap(int index) async {
+
+  Future<void> onTap(int index, BuildContext context) async {
     _lastDevice = _scannedDevices[index];
     String friendUsername = _lastDevice!.username;
     FriendRequest.sendFriendRequest(friendUsername);
@@ -130,7 +178,8 @@ class NearbyProvider extends ChangeNotifier {
   }
 
   void acceptPairing() async {
-    await FriendRequest.acceptFriendRequest();
+    String friendUsername = _lastDevice!.username;
+    await FriendRequest.acceptFriendRequest(friendUsername);
   }
 
 }
@@ -145,13 +194,13 @@ class ScannedDevice {
   late bool alreadyFriend;
 
   ScannedDevice({required this.userData, required this.device}) {
-    name = userData.get('name');
-    username = userData.get('username');
-    socialLevel = userData.get('socialLevel');
-    List<dynamic> friendsId = userData.get('friends');
+    name = userData.data().toString().contains('name') ? userData.get('name') : '';
+    username = userData.data().toString().contains('username') ? userData.get('username') : '';
+    socialLevel = userData.data().toString().contains('socialLevel') ? userData.get('socialLevel') : 0;
+    List<dynamic> friendsId = userData.data().toString().contains('friends') ? userData.get('friends') : List.empty();
     alreadyFriend = false;
-    for(int id in friendsId) {
-      if(MyUser.getUser()!.uid == id.toString()) {
+    for(String id in friendsId) {
+      if(MyUser.getUser()!.uid.toString() == id) {
         alreadyFriend = true;
         break;
       }

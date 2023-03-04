@@ -28,12 +28,14 @@ class MyUser {
 
   static Future<Player> getInstance() async {
     if(_instance == null) {
-      DocumentSnapshot userData = await getUserData(getUser()!.uid);
-      String username = userData.get('username');
-      List<dynamic> friendsID = userData.get('friends');
-      int counter = userData.get('counter');
-      _instance = Player(username: username, friendsID:  friendsID, counter: counter);
+      DocumentSnapshot docs = await getUserData(getUser()!.uid);
+      _instance =  Player(
+        username: docs.data().toString().contains('username') ? docs.get('username') : '',
+        friendsID: docs.data().toString().contains('friends') ? docs.get('friends') : List.empty(),
+        counter: docs.data().toString().contains('counter') ? docs.get('counter') : -1
+      );
     }
+
     return _instance!;
   }
 

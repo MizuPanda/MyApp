@@ -24,8 +24,8 @@ class Friend {
   Future<String> awaitFriend() async {
     DocumentSnapshot docs = await MyUser.getUserData(id);
 
-    name = docs.get('name');
-    username = docs.get('username');
+    name = docs.data().toString().contains('name') ? docs.get('name') : '';
+    username = docs.data().toString().contains('username') ? docs.get('username') : '';
 
     await friendship.awaitFriendship();
     return name;

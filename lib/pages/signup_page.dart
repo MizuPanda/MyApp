@@ -23,10 +23,6 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    void goToMain() {
-      context.pushReplacement('/main');
-    }
-
     return AnimatedBuilder(
         animation: _provider,
         builder: (BuildContext context, Widget? child) {
@@ -140,7 +136,8 @@ class _SignUpPageState extends State<SignUpPage> with TickerProviderStateMixin {
                                         alignment: Alignment.centerRight,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            _provider.signUp(goToMain);
+                                            _provider.signUp();
+                                            context.pushReplacement('main');
                                           },
                                           child: const Text("Sign Up"),
                                         ),
