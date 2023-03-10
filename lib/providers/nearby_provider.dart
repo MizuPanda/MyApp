@@ -14,10 +14,16 @@ class NearbyProvider extends ChangeNotifier {
   final _ble = FlutterReactiveBle();
   final _scannedDevices = <ScannedDevice>[];
   final app = "myapp0";
-  bool isAwaitingPairing = false;
+  bool _isAwaitingPairing = false;
   ScannedDevice? _lastDevice;
 
-
+  bool isAwaitingPairing() {
+    return _isAwaitingPairing;
+  }
+  void _setAwaitingPairing(bool boolean) {
+    _isAwaitingPairing = boolean;
+    notifyListeners();
+  }
   String _getAppCode() {
     String base = '';
     for(int i = 0; i < app.length; i++) {
@@ -154,10 +160,10 @@ class NearbyProvider extends ChangeNotifier {
     final peripheral = FlutterBlePeripheral();
     peripheral.stop();
     notifyListeners();
-    if(isAwaitingPairing && _lastDevice != null) {
+    if(_isAwaitingPairing && _lastDevice != null) {
       FriendRequest.removeFriendRequest();
       _lastDevice = null;
-      isAwaitingPairing = false;
+      _setAwaitingPairing(false);
       notifyListeners();
     }
   }
@@ -167,7 +173,7 @@ class NearbyProvider extends ChangeNotifier {
     _lastDevice = _scannedDevices[index];
     String friendUsername = _lastDevice!.username;
     FriendRequest.sendFriendRequest(friendUsername);
-    isAwaitingPairing = true;
+    _setAwaitingPairing(true);
     notifyListeners();
   }
 

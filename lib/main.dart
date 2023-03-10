@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
 import 'package:myapp/pages/login_page.dart';
 import 'package:myapp/pages/main_page.dart';
+import 'package:myapp/providers/camera_provider.dart';
 import 'package:myapp/providers/main_provider.dart';
 import 'package:myapp/routes.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -11,11 +13,16 @@ import 'models/myuser.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown
+  ]
+  );
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   checkPerm();
-
+  await CameraProvider.availableCamera();
   runApp(const MyApp());
 }
 
@@ -24,6 +31,7 @@ checkPerm() async {
   await Permission.bluetoothConnect.request();
   await Permission.bluetoothAdvertise.request();
   await Permission.locationWhenInUse.request();
+  await Permission.camera.request();
 
   if (await Permission.bluetooth.status.isPermanentlyDenied) {
     openAppSettings();
@@ -65,9 +73,23 @@ class SelectPage extends StatefulWidget {
 
 class _SelectPageState extends State<SelectPage> {
   MainProvider provider = MainProvider();
-
+  CameraProvider cameraProvider = CameraProvider();
+  bool first = true;
   @override
   Widget build(BuildContext context) {
+    /*
+    if(first) {
+      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+        cameraProvider.showCameraDialog(context);
+        setState(() {
+          first = false;
+        });
+      });
+    }
+    return Container(
+      color: Colors.white,
+    );*/
+
     if (MyUser.getUser() != null) {
       return const MainPage();
     } else {

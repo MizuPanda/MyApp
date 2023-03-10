@@ -32,6 +32,7 @@ class Friend {
   }
 
   static Future<List<dynamic>> getFriendsID() async {
+    MyUser.refreshPlayer();
     Player player = await MyUser.getInstance();
     return player.friendsID;
   }

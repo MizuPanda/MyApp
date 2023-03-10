@@ -85,7 +85,7 @@ class _FriendsPageState extends State<FriendsPage> with AutomaticKeepAliveClient
                                 Colors.lightBlueAccent,
                               ]),
                               currentValue: _provider.progress(index),
-                              maxValue: 10,
+                              maxValue: _provider.max(index),
                             )),
                       ],
                     );

@@ -29,14 +29,19 @@ class MyUser {
   static Future<Player> getInstance() async {
     if(_instance == null) {
       DocumentSnapshot docs = await getUserData(getUser()!.uid);
+      String data = docs.data().toString();
       _instance =  Player(
-        username: docs.data().toString().contains('username') ? docs.get('username') : '',
-        friendsID: docs.data().toString().contains('friends') ? docs.get('friends') : List.empty(),
-        counter: docs.data().toString().contains('counter') ? docs.get('counter') : -1
+        username: data.contains('username') ? docs.get('username') : '',
+        friendsID: data.contains('friends') ? docs.get('friends') : List.empty(),
+        counter: data.contains('counter') ? docs.get('counter') : -1,
       );
     }
 
     return _instance!;
+  }
+
+  static void refreshPlayer() {
+      _instance == null;
   }
 
   static User? getUser() {
@@ -89,7 +94,7 @@ class MyUser {
       "username": username,
       'counter': counter,
       "country": countryCode,
-      "socialLevel": 0,
+      "power": 0,
       "requestId": '',
       "friends": []
     };

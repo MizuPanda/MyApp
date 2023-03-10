@@ -6,7 +6,9 @@ import '../../../widgets/progress_indactor.dart';
 
 class NearbyDevicesList extends StatefulWidget {
   final VoidCallback disposeSuper;
-  const NearbyDevicesList({required this.disposeSuper,super.key});
+  final Function notifyParent;
+
+  const NearbyDevicesList({required this.disposeSuper,super.key, required this.notifyParent});
 
   @override
   State<NearbyDevicesList> createState() => _NearbyDevicesListState();
@@ -14,6 +16,8 @@ class NearbyDevicesList extends StatefulWidget {
 
 class _NearbyDevicesListState extends State<NearbyDevicesList> {
   final NearbyProvider _provider = NearbyProvider();
+  bool notified = false;
+
   @override
   void initState() {
     super.initState();
@@ -38,7 +42,7 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
       child:  AnimatedBuilder(
         animation: _provider,
         builder: (BuildContext context, Widget? child) {
-          if(!_provider.isAwaitingPairing) {
+          if(!_provider.isAwaitingPairing()) {
             if(_provider.length() == 0) {
               return const MyCircularProgress();
             } else {
@@ -46,7 +50,7 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
                 itemCount: _provider.length(),
                 itemBuilder: (context, index) {
                   return ListTile(
-                    leading: const Icon(Icons.bluetooth_rounded),
+                    leading: const CircleAvatar(backgroundImage: NetworkImage('https://picsum.photos/200')),
                     title: Text(_provider.username(index)),
                     subtitle: Text(_provider.isFriend(index)
                         ? "Your Friend"
@@ -60,6 +64,13 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
               );
             }
           } else {
+            if(!notified) {
+              WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                widget.notifyParent();
+              });
+              notified = true;
+            }
+
             return FutureBuilder(
                 future: _provider.awaitPairing(),
                 builder: (BuildContext context, AsyncSnapshot snapshot) {
@@ -68,10 +79,10 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
                     _provider.awaitPairing();
                   } else {
                     _provider.acceptPairing();
-                    widget.disposeSuper;
+                    widget.disposeSuper();
                   }
 
-                  return const ChargingBolt(height: 100, width: 100);
+                  return const ChargingBolt();
                 }
             );
           }
@@ -80,3 +91,5 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
     );
   }
 }
+
+

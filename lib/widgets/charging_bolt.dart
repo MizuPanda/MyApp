@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ChargingBolt extends StatefulWidget {
-  final double height;
-  final double width;
-
-  const ChargingBolt({super.key, required this.height, required this.width});
+  const ChargingBolt({super.key});
 
   @override
   State<ChargingBolt> createState() => _ChargingBoltState();
@@ -13,18 +10,16 @@ class ChargingBolt extends StatefulWidget {
 class _ChargingBoltState extends State<ChargingBolt>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _heightAnimation;
+  late Animation<double> _animation;
 
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1000),
       vsync: this,
+      duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
-
-    _heightAnimation = Tween(begin: 0.0, end: widget.height).animate(
+    _animation = Tween(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
   }
@@ -35,22 +30,36 @@ class _ChargingBoltState extends State<ChargingBolt>
     super.dispose();
   }
 
+  final double size = 200;
+
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _heightAnimation,
-      builder: (context, child) {
-        return Container(
-          width: widget.width,
-          height: _heightAnimation.value,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('lib/assets/lightning.png'),
-              fit: BoxFit.contain,
-            ),
+    return Center(
+      child: Stack(
+        children: [
+          AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              return Stack(
+                children: [
+                  Icon(Icons.flash_on_rounded,
+                      color: Colors.black, size: size + 2),
+                  Icon(
+                    Icons.flash_on_rounded,
+                    color: Colors.yellow,
+                    size: size,
+                  ),
+                  Container(
+                    width: size,
+                    height: _animation.value / 1.5 * size,
+                    color: Colors.white,
+                  ),
+                ],
+              );
+            },
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

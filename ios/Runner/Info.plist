@@ -57,9 +57,10 @@
         <key>NSLocationAlwaysUsageDescription</key>
         <string>Can I have location always?</string>
 
-        <!-- Permission options for the `photos` group
-        <key>NSPhotoLibraryUsageDescription</key>
-        <string>photos</string> -->
+        <key>NSCameraUsageDescription</key>
+        <string>The app uses camera to take pictures and videos</string>
+        <!-- <key>NSMicrophoneUsageDescription</key>
+        <string>your usage description here</string> -->
 
         <!-- Permission options for the `bluetooth` -->
         <key>NSBluetoothAlwaysUsageDescription</key>

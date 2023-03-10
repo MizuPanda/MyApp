@@ -47,6 +47,10 @@ class FriendProvider extends ChangeNotifier {
 
 
 
+  double max(int index) {
+    return _filteredFriends[index].friendship.max();
+  }
+
   int length() {
     return _filteredFriends.length;
   }

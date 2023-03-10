@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:myapp/main.dart';
+import 'package:myapp/pages/camera_page.dart';
 import 'package:myapp/pages/login_page.dart';
 import 'package:myapp/pages/main_page.dart';
 import 'package:myapp/pages/signup_page.dart';
@@ -30,6 +31,12 @@ class MyRoutes {
             path: 'main',
             builder: (BuildContext context, GoRouterState state) {
               return const MainPage();
+            },
+          ),
+          GoRoute(
+            path: 'camera',
+            builder: (BuildContext context, GoRouterState state) {
+              return const CameraPage();
             },
           ),
         ],
