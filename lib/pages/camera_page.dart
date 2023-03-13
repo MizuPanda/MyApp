@@ -28,8 +28,14 @@ class _CameraPageState extends State<CameraPage>
     super.dispose();
   }
 
+
+
   @override
   Widget build(BuildContext context) {
+    void pop() {
+       Navigator.of(context).pop();
+    }
+
     return AnimatedBuilder(
       animation: _provider,
       builder: (BuildContext context, Widget? child) {
@@ -72,12 +78,21 @@ class _CameraPageState extends State<CameraPage>
                           ),
                         ),
                         RoundButton(
+                          icon: _provider.data,
+                          onPressed: _provider.changeFlashState,
+                          size: 50,
+                          colorUnpressed: Colors.white,
+                          borderColor: Colors.transparent,
+                        ),
+                        RoundButton(
                             size: 50,
                             icon: Icons.circle_rounded,
                             shouldGrow: true,
                             colorUnpressed: Colors.white,
                             colorPressed: Colors.pink.withOpacity(0.7),
-                            onPressed: () {}),
+                            onPressed: () {
+                              _provider.takePicture(pop);
+                            }),
                       ],
                     ),
                   )

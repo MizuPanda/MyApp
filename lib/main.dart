@@ -88,12 +88,16 @@ class _SelectPageState extends State<SelectPage> {
     }
     return Container(
       color: Colors.white,
-    );*/
+    );
+
+     */
 
     if (MyUser.getUser() != null) {
       return const MainPage();
     } else {
       return const LoginPage();
     }
+
+
   }
 }

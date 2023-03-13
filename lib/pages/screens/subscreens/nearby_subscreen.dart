@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../providers/nearby_provider.dart';
 import '../../../widgets/charging_bolt.dart';
 import '../../../widgets/progress_indactor.dart';
+import '../camera_screen.dart';
 
 class NearbyDevicesList extends StatefulWidget {
   final VoidCallback disposeSuper;
@@ -17,6 +19,7 @@ class NearbyDevicesList extends StatefulWidget {
 class _NearbyDevicesListState extends State<NearbyDevicesList> {
   final NearbyProvider _provider = NearbyProvider();
   bool notified = false;
+  bool first = true;
 
   @override
   void initState() {
@@ -36,6 +39,24 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
 
   @override
   Widget build(BuildContext context) {
+    void showCamera() {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return Dialog(
+              shadowColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: const CameraScreen(),
+            );
+          },
+        );
+    }
+    void dispose(){
+      context.pop();
+    }
+
     return SizedBox(
       width: 300.0,
       height: 300.0,
@@ -57,7 +78,7 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
                         : "Not Friend"),
                     trailing: Text('S.LVL ${_provider.socialLevel(index)}'),
                     onTap: () {
-                      _provider.onTap(index, context);
+                      _provider.onTap(index);
                     },
                   );
                 },
@@ -71,7 +92,13 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
               notified = true;
             }
 
-            return FutureBuilder(
+            if(_provider.arePaired() && first) {
+              _provider.paired(showCamera,dispose);
+              first = false;
+            }
+
+            return const ChargingBolt();
+           /* return FutureBuilder(
                 future: _provider.awaitPairing(),
                 builder: (BuildContext context, AsyncSnapshot snapshot) {
                   if(!snapshot.hasData) {
@@ -84,7 +111,7 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
 
                   return const ChargingBolt();
                 }
-            );
+            );*/
           }
         },
       ),

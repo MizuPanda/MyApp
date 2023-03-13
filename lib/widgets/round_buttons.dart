@@ -7,7 +7,8 @@ class RoundButton extends StatefulWidget {
   final Color? colorPressed;
   final Color? colorUnpressed;
   final bool? shouldGrow;
-  const RoundButton({Key? key, required this.icon, required this.onPressed, required this.size, this.colorPressed, this.colorUnpressed, this.shouldGrow}) : super(key: key);
+  final Color? borderColor;
+  const RoundButton({Key? key, required this.icon, required this.onPressed, required this.size, this.colorPressed, this.colorUnpressed, this.shouldGrow, this.borderColor}) : super(key: key);
 
   @override
   State<RoundButton> createState() => _RoundButtonState();
@@ -38,7 +39,7 @@ class _RoundButtonState extends State<RoundButton>  {
       child: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(width: 3,color: Colors.white,)
+          border: Border.all(width: 3,color: widget.borderColor == null?Colors.white: widget.borderColor!,)
         ),
         child: IconButton(
           color: widget.colorPressed != null? (!_isPressed? widget.colorUnpressed:widget.colorPressed): widget.colorUnpressed,

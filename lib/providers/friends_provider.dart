@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/pages/screens/linking_screen.dart';
+import 'package:timeago/timeago.dart' as timeago;
+
 
 import '../models/friend.dart';
 
@@ -8,28 +10,13 @@ class FriendProvider extends ChangeNotifier {
   late List<Friend> _filteredFriends = [];
   final searchController = TextEditingController();
 
-  final List<String> _week = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday'
-  ];
-  final List<String> _month = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
-  ];
+  static final FriendProvider _friendProvider = FriendProvider._internal();
+  FriendProvider._internal();
+
+  factory FriendProvider() {
+    return _friendProvider;
+  }
+
 
   void showLinkingDialog(BuildContext context) {
     showDialog(
@@ -57,7 +44,7 @@ class FriendProvider extends ChangeNotifier {
 
   String lastSeen(int index) {
     DateTime dateTime = _filteredFriends[index].friendship.lastSeen.toLocal();
-    return '${_week[dateTime.weekday - 1]}, ${_month[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
+    return timeago.format(dateTime);
   }
 
   ImageProvider photo(int index) {
@@ -94,7 +81,7 @@ class FriendProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void getFriendList() async {
+  Future<void> getFriendList() async {
     List<dynamic> friendsID = await Friend.getFriendsID();
     List<Friend> friends = [];
       for (String id in friendsID) {

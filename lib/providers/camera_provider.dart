@@ -1,12 +1,79 @@
 import 'package:camera/camera.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:myapp/models/friend_request.dart';
+import 'package:myapp/providers/friends_provider.dart';
+import 'package:myapp/providers/nearby_provider.dart';
+import 'package:photo_view/photo_view.dart';
 
-import '../pages/screens/camera_screen.dart';
+import 'dart:io' show File;
 
 class CameraProvider extends ChangeNotifier {
   static late List<CameraDescription> _cameras;
   late CameraController _controller;
   late AnimationController _animationController;
+  late FlashState _flashState = FlashState.off;
+  static XFile? _lastFile;
+
+  IconData data = Icons.flash_off_rounded;
+
+  Future<void> skip(DateTime dateTime, Function disposeAll) async {
+    await FriendRequest.accomplishLinking(dateTime);
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      disposeAll();
+    });
+    await FriendProvider().getFriendList();
+  }
+
+  Future<void> _downloadFile(String friendshipId, DateTime dateTime) async {
+    File? file = File(_lastFile!.path);
+    await file.rename(dateTime.toString());
+    file = await FlutterImageCompress.compressAndGetFile(
+      file.absolute.path,
+      file.absolute.path,
+      quality: 85,
+    );
+
+    try {
+      final fileName = file!.path.split('/').last;
+      final storageRef = FirebaseStorage.instance.ref().child('friendships/$friendshipId/$fileName');
+      final uploadTask = storageRef.putFile(file);
+      await uploadTask.whenComplete(() => debugPrint('Picture uploaded to Firebase Storage'));
+    } catch(e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  Future<void> next(Function disposeAll) async {
+    DateTime dateTime = DateTime.now().toUtc();
+    String friendshipId = NearbyProvider.getFriendshipId();
+    //ADD FILE TO STORAGE
+    await _downloadFile(friendshipId, dateTime);
+    await skip(dateTime, disposeAll);
+  }
+
+  void changeFlashState() {
+    switch (_flashState) {
+      case FlashState.on:
+        _flashState = FlashState.off;
+        data = Icons.flash_off_rounded;
+        _controller.setFlashMode(FlashMode.off);
+        break;
+      case FlashState.off:
+        _flashState = FlashState.automatic;
+        data = Icons.flash_auto_rounded;
+        _controller.setFlashMode(FlashMode.auto);
+        break;
+      case FlashState.automatic:
+        _flashState = FlashState.on;
+        data = Icons.flash_on_rounded;
+        _controller.setFlashMode(FlashMode.always);
+        break;
+    }
+    notifyListeners();
+  }
 
   static Future<void> availableCamera() async {
     _cameras = await availableCameras();
@@ -15,15 +82,67 @@ class CameraProvider extends ChangeNotifier {
   bool isInitialized() {
     return _controller.value.isInitialized;
   }
-  void changeCameraLens(BuildContext context) {
-    final CameraLensDirection lensDirection = _controller.description.lensDirection;
-    CameraDescription? newDescription;
-    if(lensDirection == CameraLensDirection.front) {
-      newDescription = _cameras.firstWhere((description) => description.lensDirection == CameraLensDirection.back);
-    } else {
-      newDescription = _cameras.firstWhere((description) => description.lensDirection == CameraLensDirection.front);
-    }
 
+  Future<void> deleteFile(Function push) async {
+    File file = File(_lastFile!.path);
+    await file.delete();
+    push();
+  }
+
+  XFile? getLastFile() {
+    return _lastFile;
+  }
+
+  Widget renderPicture() {
+    debugPrint('Path is ${_lastFile!.path}');
+    return SizedBox(
+      height: 200,
+      width: 200,
+      child: PhotoView(
+        backgroundDecoration: const BoxDecoration(
+          color: Colors.white,
+        ),
+        imageProvider: Image.file(File(_lastFile!.path)).image,
+      ),
+    );
+  }
+
+  Future<void> takePicture(Function pop) async {
+    try {
+      // Check if the controller is initialized.
+      if (!_controller.value.isInitialized) {
+        throw 'Camera controller is not initialized';
+      }
+
+      // Take the picture and save it to the given path.
+      XFile xFile = await _controller.takePicture();
+
+      CroppedFile? croppedFile = await ImageCropper().cropImage(
+          sourcePath: xFile.path,
+          aspectRatioPresets: [CropAspectRatioPreset.square]);
+      if (_flashState == FlashState.on) {
+        await _controller.setFlashMode(FlashMode.always);
+      }
+      _lastFile = XFile(croppedFile!.path);
+
+      notifyListeners();
+      pop();
+    } catch (e) {
+      debugPrint('Error: $e');
+    }
+  }
+
+  void changeCameraLens(BuildContext context) {
+    final CameraLensDirection lensDirection =
+        _controller.description.lensDirection;
+    CameraDescription? newDescription;
+    if (lensDirection == CameraLensDirection.front) {
+      newDescription = _cameras.firstWhere((description) =>
+          description.lensDirection == CameraLensDirection.back);
+    } else {
+      newDescription = _cameras.firstWhere((description) =>
+          description.lensDirection == CameraLensDirection.front);
+    }
     _setCameras(context, newDescription);
     _handleOnPressed();
   }
@@ -55,7 +174,10 @@ class CameraProvider extends ChangeNotifier {
       duration: const Duration(milliseconds: 250),
       vsync: vsync,
     );
-    _setCameras(context, _cameras.firstWhere((description) => description.lensDirection == CameraLensDirection.front));
+    _setCameras(
+        context,
+        _cameras.firstWhere((description) =>
+            description.lensDirection == CameraLensDirection.front));
     notifyListeners();
   }
 
@@ -68,6 +190,7 @@ class CameraProvider extends ChangeNotifier {
   Animation<double> getTween() {
     return Tween(begin: 0.0, end: 0.5).animate(_animationController);
   }
+
   void _handleOnPressed() {
     if (_animationController.status == AnimationStatus.completed) {
       _animationController.reverse();
@@ -82,35 +205,31 @@ class CameraProvider extends ChangeNotifier {
       if (!context.mounted) {
         return;
       }
+      switch (_flashState) {
+        case FlashState.on:
+          _controller.setFlashMode(FlashMode.always);
+          break;
+        case FlashState.off:
+          _controller.setFlashMode(FlashMode.off);
+          break;
+        case FlashState.automatic:
+          _controller.setFlashMode(FlashMode.auto);
+          break;
+      }
       notifyListeners();
     }).catchError((Object e) {
       if (e is CameraException) {
         switch (e.code) {
           case 'CameraAccessDenied':
-          // Handle access errors here.
+            // Handle access errors here.
             break;
           default:
-          // Handle other errors here.
+            // Handle other errors here.
             break;
         }
       }
     });
   }
-
-   void showCameraDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shadowColor: Colors.blue,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.0),
-          ),
-          child: const CameraScreen(),
-        );
-      },
-    );
-  }
-
-
 }
+
+enum FlashState { on, off, automatic }

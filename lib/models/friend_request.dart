@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:myapp/models/events.dart';
 import 'package:myapp/models/myuser.dart';
+
 
 class FriendRequest {
   static final FirebaseAuth _fb = FirebaseAuth.instance;
@@ -24,25 +26,8 @@ class FriendRequest {
       });
   }
 
-  static Future<bool> verifyRequestId(String friendUsername) async {
-    User user = _fb.currentUser!;
-    String senderId = user.uid;
-
-    //Get sender's requestId
-    DocumentSnapshot senderData = await _collection.doc(senderId).get();
-    String senderRequest = senderData.get('requestId');
-
-    //Get receiver's requestId
-    DocumentSnapshot receiverData = await _getUserByUsername(friendUsername);
-    String receiverRequest = receiverData.get('requestId');
-
-    //Verify if both are equal
-    return (senderRequest == receiverData.id) && (receiverRequest == senderId);
-  }
-
-  static Future<void> acceptFriendRequest(String friendUsername) async {
-    User user = _fb.currentUser!;
-    String userId = user.uid;
+  static Future<void> accomplishLinking(DateTime dateTime) async {
+    String userId = _fb.currentUser!.uid;
 
     //Get requestId
     DocumentSnapshot senderData = await _collection.doc(userId).get();
@@ -51,27 +36,37 @@ class FriendRequest {
     if(requestId.isNotEmpty) {
       // Set requestId to none
       removeFriendRequest();
-      DocumentSnapshot friendDoc = await _getUserByUsername(friendUsername);
-      await _collection.doc(friendDoc.id).update({
+      await _collection.doc(requestId).update({
         'requestId': ''
       });
 
-      // Add the request ID to the friends list
-      await _collection.doc(requestId).update({
-        'friends': FieldValue.arrayUnion([userId])
-      });
-      await _collection.doc(userId).update({
-        'friends': FieldValue.arrayUnion([requestId])
-      });
+      Player player = await MyUser.getInstance();
+      bool isFriend = player.friendsID.every((id) => id == requestId);
 
-      //Create a new friendship
-      createFriendship(requestId);
+      if(isFriend) {
+        await Events.singleLinking(userId, requestId, dateTime);
+      } else {
+        await _setNewFriends(userId, requestId, dateTime);
+      }
+
     }
   }
 
-  static void createFriendship(String receiverId) async {
-    User user = _fb.currentUser!;
-    String senderId = user.uid;
+  static Future<void> _setNewFriends(String userId, String requestId, DateTime dateTime) async {
+    // Add the request ID to the friends list
+    await _collection.doc(requestId).update({
+      'friends': FieldValue.arrayUnion([userId])
+    });
+    await _collection.doc(userId).update({
+      'friends': FieldValue.arrayUnion([requestId])
+    });
+
+    //Create a new friendship
+    _createFriendship(userId, requestId, dateTime);
+    }
+
+
+  static void _createFriendship(String senderId, String receiverId, DateTime dateTime) async {
     DocumentSnapshot receiver = await _collection.doc(receiverId).get();
 
     List<String> ids = [senderId, receiver.id];
@@ -83,7 +78,7 @@ class FriendRequest {
         "friends": [ids.first, ids.last],
         "level": 0,
         "progress": 0,
-        'lastSeen': DateTime.now().toString()
+        'lastSeen': dateTime.toString()
       };
 
       await FirebaseFirestore.instance

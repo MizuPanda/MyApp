@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:myapp/providers/camera_provider.dart';
+import 'package:photo_view/photo_view.dart';
 
 /// CameraApp is the Main Application.
 
@@ -11,6 +15,8 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
+  final CameraProvider _provider = CameraProvider();
+
   @override
   void dispose() {
     super.dispose();
@@ -18,6 +24,14 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    void push() {
+      context.push('/camera');
+    }
+
+    void disposeAll() {
+      Navigator.of(context).popUntil(ModalRoute.withName('/main'));
+    }
+
     return Container(
         height: 400.0,
         width: 300.0,
@@ -27,35 +41,97 @@ class _CameraScreenState extends State<CameraScreen> {
             Column(
               children: [
                 const Text('Your turn!'),
-                const SizedBox(
-                  height: 20,
-                ),
+                const Padding(padding: EdgeInsets.all(8)),
                 const Text("Memorize this moment!"),
                 Expanded(
                   child: Align(
-                    alignment: Alignment.bottomRight,
-                    child:
-                        TextButton(onPressed: () {}, child: const Text('Skip')),
+                    alignment: Alignment.bottomCenter,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                            onPressed: () {
+                              _provider.skip(
+                                  DateTime.now().toUtc(), disposeAll);
+                            },
+                            child: const Text('Skip')),
+                        TextButton(
+                            onPressed: (_provider.getLastFile() == null)
+                                ? null
+                                : () {
+                                    _provider.next(disposeAll);
+                                  },
+                            child: const Text('Continue'))
+                      ],
+                    ),
                   ),
                 )
               ],
             ),
-            Center(
-                child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.rectangle,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(width: 3,color: Colors.black),
-              ),
-              child: IconButton(
-                  onPressed: () {
-                    context.push('/camera');
-                  },
-                  icon: const Icon(
-                    Icons.add_a_photo_rounded,
-                    size: 30,
-                  )),
-            )),
+            AnimatedBuilder(
+                animation: _provider,
+                builder: (BuildContext context, Widget? child) {
+                  if (_provider.getLastFile() == null) {
+                    return Center(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.rectangle,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(width: 3, color: Colors.black),
+                        ),
+                        child: IconButton(
+                            onPressed: push,
+                            icon: const Icon(
+                              Icons.add_a_photo_rounded,
+                              size: 30,
+                            )),
+                      ),
+                    );
+                  } else {
+                    return Center(
+                      child: Container(
+                        width: 230,
+                        height: 230,
+                        decoration: const BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black,
+                                offset: Offset(0.5, 1),
+                                blurRadius: 1)
+                          ],
+                        ),
+                        child: ClipRect(
+                          child: Stack(
+                            children: [
+                              PhotoView(
+                                backgroundDecoration: const BoxDecoration(
+                                  color: Colors.white,
+                                ),
+                                imageProvider: Image.file(
+                                        File(_provider.getLastFile()!.path))
+                                    .image,
+                              ),
+                              Align(
+                                  alignment: Alignment.topRight,
+                                  child: Container(
+                                      decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.black),
+                                      child: IconButton(
+                                          onPressed: () async {
+                                            await _provider.deleteFile(push);
+                                          },
+                                          icon: const Icon(
+                                            Icons.add_a_photo_rounded,
+                                            color: Colors.white,
+                                          ))))
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                })
           ],
         ));
   }

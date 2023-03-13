@@ -96,7 +96,7 @@ class _FriendsPageState extends State<FriendsPage> with AutomaticKeepAliveClient
             alignment: Alignment.bottomRight,
             padding: const EdgeInsets.all(10),
             child: ExpandableFab(
-              distance: 112.0,
+              distance: 80,
               children: [
                 ActionButton(
                   onPressed: () {
@@ -107,10 +107,6 @@ class _FriendsPageState extends State<FriendsPage> with AutomaticKeepAliveClient
                 ActionButton(
                   onPressed: () {},
                   icon: const Icon(Icons.thunderstorm),
-                ),
-                ActionButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.book),
                 ),
               ],
             ),

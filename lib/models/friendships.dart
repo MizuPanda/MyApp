@@ -1,15 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:myapp/providers/nearby_provider.dart';
 
 class Friendship {
   late double progress; //max = 100
   late DateTime lastSeen;
   late int level;
   List<String> ids;
-
+  bool newLevel = false;
 
   double max() {
-    if(level < 10) {
-      return level*10;
+    if (level < 10) {
+      return level * 10;
     }
     return 100;
   }
@@ -17,6 +18,7 @@ class Friendship {
   String _docId() {
     return ids.first + ids.last;
   }
+
   final CollectionReference _collection =
       FirebaseFirestore.instance.collection('friendships');
 
@@ -25,42 +27,57 @@ class Friendship {
   }
 
   Future<void> awaitFriendship() async {
-    DocumentSnapshot friendship =
-        await _collection.doc(_docId()).get();
-    progress = friendship.data().toString().contains('progress') ? friendship.get('progress').toDouble() : -1;
-    level = friendship.data().toString().contains('level') ? friendship.get('level') : -1;
-    lastSeen = friendship.data().toString().contains('lastSeen') ? DateTime.parse(friendship.get('lastSeen')) : DateTime.parse('');
+    DocumentSnapshot friendship = await _collection.doc(_docId()).get();
+    progress = friendship.data().toString().contains('progress')
+        ? friendship.get('progress').toDouble()
+        : -1;
+    level = friendship.data().toString().contains('level')
+        ? friendship.get('level')
+        : -1;
+    lastSeen = friendship.data().toString().contains('lastSeen')
+        ? DateTime.parse(friendship.get('lastSeen'))
+        : DateTime.parse('');
   }
 
-  Future<void> _verifyLevel() async{
-    if(progress >= max()) {
-      await _removeProgress(max());
-      await _nextLevel();
+  void _verifyLevel() {
+    if (progress >= max()) {
+      _removeProgress(max());
+      _nextLevel();
     }
   }
 
-  Future<void> _nextLevel() async {
+  void _nextLevel() {
     level++;
-    await _collection.doc(_docId()).update({
-      'level':level
-    }
-    );
+    //await _collection.doc(_docId()).update({'level': level});
+    newLevel = true;
   }
 
-  Future<void> _removeProgress(double d) async {
+  void _removeProgress(double d) {
     progress -= d;
-    await _collection.doc(_docId()).update({
-      'progress':progress
-    }
-    );
+    //await _collection.doc(_docId()).update({'progress': progress});
   }
 
-  Future<void> addProgress(double d) async {
+  Future<void> addProgress(double d, {DateTime? dateTime}) async {
     progress += d;
-    await _collection.doc(_docId()).update({
-      'progress': progress
+    _verifyLevel();
+    if(dateTime != null) {
+      await _collection.doc(_docId()).update(
+          {
+            'progress': progress,
+            'lastSeen': DateTime.now().toUtc().toString(),
+            'level':level,
+            'pictureTaker': NearbyProvider.taken
+          }
+      );
+    } else {
+      await _collection.doc(_docId()).update({
+        'progress': progress,
+        'level':level
+      });
     }
-    );
-    await _verifyLevel();
   }
+}
+
+enum ProgressCase {
+  single
 }

@@ -114,5 +114,6 @@ class Player {
   List<dynamic> friendsID;
   int counter;
 
+
   Player({required this.username, required this.friendsID, required this.counter});
 }
