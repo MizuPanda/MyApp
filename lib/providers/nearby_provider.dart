@@ -7,6 +7,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
 import 'package:myapp/models/friend_request.dart';
 
+import '../models/friendships.dart';
 import '../models/myuser.dart';
 
 class NearbyProvider extends ChangeNotifier {
@@ -14,10 +15,13 @@ class NearbyProvider extends ChangeNotifier {
   final _scannedDevices = <ScannedDevice>[];
   static const app = "myapp0";
   static const taken = 'TAKEN';
+  static const chosen = 'CHOSEN:';
   bool _isAwaitingPairing = false;
   static ScannedDevice? _lastDevice;
   static bool _userPaired = false;
   static bool _friendPaired = false;
+  late StreamSubscription<DocumentSnapshot> _userStream;
+  late StreamSubscription<DocumentSnapshot> _friendStream;
 
   NearbyProvider() {
     FriendRequest.removeFriendRequest();
@@ -107,65 +111,65 @@ class NearbyProvider extends ChangeNotifier {
   }
 
   Future<void> startScanning() async {
-    await _startAdvertising();
-    String appUuid = _getAppUuid();
+      await _startAdvertising();
+      String appUuid = _getAppUuid();
 
-    _scanSubscription = _ble
-        .scanForDevices(
-      requireLocationServicesEnabled: true,
-      withServices: [],
-      scanMode: ScanMode.balanced,
-    )
-        .listen((scanResult) async {
-      // debugPrint('name: ${scanResult.name}');
-      //debugPrint('uuid: ${scanResult.serviceUuids}');
-      if (scanResult.serviceUuids.isNotEmpty) {
-        // debugPrint('uuid: ${scanResult.serviceUuids}');
-
-        String uuid = scanResult.serviceUuids.first.toString();
-        if (uuid.contains(appUuid)) {
-          if (_scannedDevices.every((element) =>
+      if(!arePaired()) {
+        _scanSubscription = _ble
+            .scanForDevices(
+          requireLocationServicesEnabled: true,
+          withServices: [],
+          scanMode: ScanMode.balanced,
+        )
+            .listen((scanResult) async {
+          if (scanResult.serviceUuids.isNotEmpty) {
+            String uuid = scanResult.serviceUuids.first.toString();
+            if (uuid.contains(appUuid)) {
+              if (_scannedDevices.every((element) =>
               element.device.serviceUuids.first.toString() != uuid)) {
-            String string = uuid.substring(19).replaceFirst('-', '');
-            int counter = int.parse(string);
-            debugPrint('counter is $counter');
-            DocumentSnapshot? scannedUserData =
+                String string = uuid.substring(19).replaceFirst('-', '');
+                int counter = int.parse(string);
+                debugPrint('counter is $counter');
+                DocumentSnapshot? scannedUserData =
                 await MyUser.getUserByCounter(counter);
 
-            if (scannedUserData != null) {
-              ScannedDevice scannedDevice =
-                  ScannedDevice(userData: scannedUserData, device: scanResult);
-              if (_scannedDevices.every(
-                  (element) => element.username != scannedDevice.username)) {
-                _scannedDevices.add(scannedDevice);
-                notifyListeners();
+                if (scannedUserData != null) {
+                  ScannedDevice scannedDevice = ScannedDevice(
+                      userData: scannedUserData, device: scanResult);
+                  if (_scannedDevices.every(
+                          (element) =>
+                      element.username != scannedDevice.username)) {
+                    _scannedDevices.add(scannedDevice);
+                    notifyListeners();
+                  }
+                }
               }
             }
           }
+        });
+      }
+    if (_scanSubscription != null) {
+      await Future.delayed(const Duration(seconds: 7), () async {
+        if (_scanSubscription != null) {
+          debugPrint('Timeout');
+          _scanSubscription?.cancel();
+          _scanSubscription = null;
+          final peripheral = FlutterBlePeripheral();
+          peripheral.stop();
+
+          await startScanning();
         }
-      }
-    });
-
-    await Future.delayed(const Duration(seconds: 7), () {
-      if (_scanSubscription != null) {
-        debugPrint('Timeout');
-        _scanSubscription?.cancel();
-        _scanSubscription = null;
-        final peripheral = FlutterBlePeripheral();
-        peripheral.stop();
-
-        startScanning();
-      }
-    });
+      });
+    }
   }
 
-  void stopScanning() {
+  void stopScanning() async {
     _scannedDevices.clear();
 
-    _scanSubscription?.cancel();
+    await _scanSubscription?.cancel();
     _scanSubscription = null;
     final peripheral = FlutterBlePeripheral();
-    peripheral.stop();
+    await peripheral.stop();
     notifyListeners();
     if (_isAwaitingPairing && _lastDevice != null) {
       FriendRequest.removeFriendRequest();
@@ -173,6 +177,8 @@ class NearbyProvider extends ChangeNotifier {
       _setAwaitingPairing(false);
       _userPaired = false;
       _friendPaired = false;
+      await _friendStream.cancel();
+      await _userStream.cancel();
       notifyListeners();
     }
   }
@@ -181,10 +187,12 @@ class NearbyProvider extends ChangeNotifier {
     _userPaired = false;
     _friendPaired = false;
     _lastDevice = _scannedDevices[index];
-    String friendUsername = _lastDevice!.username;
-    FriendRequest.sendFriendRequest(friendUsername);
+    Friendship.removePictureTaker(_getIds().first + _getIds().last);
+    FriendRequest.sendFriendRequest(_lastDevice!.userData.id);
     _setAwaitingPairing(true);
     _awaitPairing();
+    _userStream.resume();
+    _friendStream.resume();
     notifyListeners();
   }
 
@@ -193,51 +201,69 @@ class NearbyProvider extends ChangeNotifier {
   }
 
   void _awaitPairing() {
-    FirebaseFirestore.instance
+    String friendId = _lastDevice!.userData.id;
+    String userId = MyUser.getUser()!.uid;
+    debugPrint('first values ${[friendId, userId]}');
+    _friendStream = FirebaseFirestore.instance
         .collection('users')
-        .doc(_lastDevice!.userData.id)
+        .doc(friendId)
         .snapshots()
         .listen((snapshot) {
-      debugPrint('listening friend');
+      debugPrint('listening friend with snapshot ${snapshot.data()}');
 
       if (snapshot.data() != null) {
         String requestId = snapshot.data()!.containsKey('requestId')
             ? snapshot.get('requestId')
             : '';
-        if (requestId == MyUser.getUser()!.uid && !_friendPaired) {
+        if (requestId == userId) {
           _friendPaired = true;
+          debugPrint('true friend');
           notifyListeners();
-          return ;
         }
       }
     });
-    FirebaseFirestore.instance
+    _userStream = FirebaseFirestore.instance
         .collection('users')
-        .doc(MyUser.getUser()!.uid)
+        .doc(userId)
         .snapshots()
         .listen((snapshot) {
-      debugPrint('listening user');
+      debugPrint('listening user with snapshot ${snapshot.data()}');
       if (snapshot.data() != null && _lastDevice != null) {
         String requestId = snapshot.data()!.containsKey('requestId')
             ? snapshot.get('requestId')
             : '';
-        if (requestId == _lastDevice!.userData.id && !_userPaired) {
+        if (requestId ==  friendId) {
           _userPaired = true;
+          debugPrint('true user');
           notifyListeners();
-          return ;
         }
       }
     });
     notifyListeners();
   }
 
-
   Future<void> paired(Function showCamera, Function disposeAll) async {
     debugPrint('Pairing');
+    await _scanSubscription?.cancel();
+    _scanSubscription = null;
+    await _friendStream.cancel();
+    await _userStream.cancel();
+    final peripheral = FlutterBlePeripheral();
+    await peripheral.stop();
+    notifyListeners();
     final String userId =
         MyUser.getUser()!.uid; // replace with the ID of the current user
+    DocumentSnapshot docs = await FirebaseFirestore.instance.collection('friendships').doc(_getIds().first + _getIds().last).get();
+    String actualTaker = docs.data().toString().contains('pictureTaker')? docs.get('pictureTaker'): '';
+    String pictureTaker;
+    if(!actualTaker.contains(chosen)) {
+      pictureTaker = await _selectPictureTaker();
+    } else {
+      pictureTaker = actualTaker;
+    }
 
-    final pictureTaker = await _selectPictureTaker();
+    pictureTaker = pictureTaker.replaceFirst(chosen, '');
+    debugPrint(pictureTaker);
     if (pictureTaker == userId) {
       // User is the one taking the picture, prompt them to do so.
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -245,7 +271,7 @@ class NearbyProvider extends ChangeNotifier {
       });
     } else {
       // User is waiting for the other user to take the picture.
-      _startPictureTakerListener((pictureTaker) async {
+      _startPictureTakerListener((pictureTaker) {
         if (pictureTaker == userId) {
           // User is the one taking the picture, prompt them to do so.
           WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -272,24 +298,25 @@ class NearbyProvider extends ChangeNotifier {
     return ids.first + ids.last;
   }
 
-  // This function randomly selects one of the users to take the picture.
-// Returns the user ID of the picture taker.
+  /// This function randomly selects one of the users to take the picture.
+  ///  Returns the user ID of the picture taker.
   Future<String> _selectPictureTaker() async {
     List<String> usersId = _getIds();
+    String docId = usersId.first + usersId.last;
 
     final random = Random();
     final index = random.nextDouble() < 0.5 ? 0 : 1;
     final pictureTaker = usersId[index];
     await FirebaseFirestore.instance
         .collection('friendships')
-        .doc(usersId.first + usersId.last)
-        .update({'pictureTaker': pictureTaker});
+        .doc(docId)
+        .update({'pictureTaker': chosen+pictureTaker});
     return pictureTaker;
   }
 
-  // This function sets up a listener on the "pictureTaker" field in the friendship document.
-// When the listener is triggered, it checks which user is supposed to take the picture
-// and prompts them to do so.
+  /// This function sets up a listener on the "pictureTaker" field in the friendship document.
+  /// When the listener is triggered, it checks which user is supposed to take the picture
+  /// and prompts them to do so.
   StreamSubscription<DocumentSnapshot> _startPictureTakerListener(
       Function(String) onPictureTakerSelected) {
     String friendshipId = getFriendshipId();

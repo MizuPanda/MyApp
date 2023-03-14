@@ -8,7 +8,8 @@ import 'package:myapp/providers/friends_provider.dart';
 import 'package:myapp/providers/nearby_provider.dart';
 import 'package:photo_view/photo_view.dart';
 
-import 'dart:io' show File;
+import 'dart:io' show File, Platform;
+
 
 class CameraProvider extends ChangeNotifier {
   static late List<CameraDescription> _cameras;
@@ -24,12 +25,21 @@ class CameraProvider extends ChangeNotifier {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       disposeAll();
     });
-    await FriendProvider().getFriendList();
+
+    FriendProvider().refresh();
+    notifyListeners();
+  }
+
+  Future<File> _changeFileNameOnly(File file, String newFileName) {
+    var path = file.path;
+    var lastSeparator = path.lastIndexOf(Platform.pathSeparator);
+    var newPath = path.substring(0, lastSeparator + 1) + newFileName;
+    return file.rename(newPath);
   }
 
   Future<void> _downloadFile(String friendshipId, DateTime dateTime) async {
     File? file = File(_lastFile!.path);
-    await file.rename(dateTime.toString());
+    file =  await _changeFileNameOnly(file, dateTime.toUtc().toString());
     file = await FlutterImageCompress.compressAndGetFile(
       file.absolute.path,
       file.absolute.path,

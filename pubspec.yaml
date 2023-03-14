@@ -44,11 +44,14 @@ dependencies:
 
   go_router: ^6.0.6
   provider: ^6.0.5
+  infinite_scroll_pagination: ^3.2.0
 
   geolocator: ^9.0.2
   geocoding: ^2.0.5
 
   flutter_animation_progress_bar: ^2.3.1
+  fade_shimmer: ^2.2.0
+  glitters: ^0.4.0
 
   flutter_reactive_ble: ^5.0.3
   flutter_ble_peripheral: ^1.1.1

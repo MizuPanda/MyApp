@@ -12,6 +12,7 @@ class Friend {
   late ImageProvider photo;
   late Friendship friendship;
 
+
   static final _fb = FirebaseAuth.instance;
 
   Friend({required this.id}) {
@@ -32,9 +33,7 @@ class Friend {
   }
 
   static Future<List<dynamic>> getFriendsID() async {
-    MyUser.refreshPlayer();
     Player player = await MyUser.getInstance();
     return player.friendsID;
   }
-
 }

@@ -5,17 +5,17 @@ import 'package:myapp/models/events.dart';
 import 'package:myapp/models/myuser.dart';
 
 
+
+
 class FriendRequest {
-  static final FirebaseAuth _fb = FirebaseAuth.instance;
   static final CollectionReference _collection =
       FirebaseFirestore.instance.collection('users');
 
-  static Future<void> sendFriendRequest(String receiverUsername) async {
+  static Future<void> sendFriendRequest(String receiverId) async {
     // Add the sender's ID to the receiver's requestId
-    User user = _fb.currentUser!;
+    User user = MyUser.getUser()!;
     String senderId = user.uid;
-    DocumentSnapshot receiver = await _getUserByUsername(receiverUsername);
-    await _collection.doc(receiver.id).update({
+    await _collection.doc(receiverId).update({
       'requestId': senderId
     });
   }
@@ -27,13 +27,12 @@ class FriendRequest {
   }
 
   static Future<void> accomplishLinking(DateTime dateTime) async {
-    String userId = _fb.currentUser!.uid;
+    String userId = MyUser.getUser()!.uid;
 
     //Get requestId
     DocumentSnapshot senderData = await _collection.doc(userId).get();
     String requestId = senderData.data().toString().contains('requestId') ? senderData.get('requestId') : '';
 
-    if(requestId.isNotEmpty) {
       // Set requestId to none
       removeFriendRequest();
       await _collection.doc(requestId).update({
@@ -44,21 +43,22 @@ class FriendRequest {
       bool isFriend = player.friendsID.every((id) => id == requestId);
 
       if(isFriend) {
-        await Events.singleLinking(userId, requestId, dateTime);
+        await Events.singleLinking(requestId, dateTime);
       } else {
         await _setNewFriends(userId, requestId, dateTime);
+        MyUser.refreshPlayer();
       }
-
-    }
   }
 
   static Future<void> _setNewFriends(String userId, String requestId, DateTime dateTime) async {
     // Add the request ID to the friends list
     await _collection.doc(requestId).update({
-      'friends': FieldValue.arrayUnion([userId])
+      'friends': FieldValue.arrayUnion([userId]),
+      'power': FieldValue.increment(Events.singleLinkPow)
     });
     await _collection.doc(userId).update({
-      'friends': FieldValue.arrayUnion([requestId])
+      'friends': FieldValue.arrayUnion([requestId]),
+      'power':FieldValue.increment(Events.singleLinkPow)
     });
 
     //Create a new friendship
@@ -78,7 +78,9 @@ class FriendRequest {
         "friends": [ids.first, ids.last],
         "level": 0,
         "progress": 0,
-        'lastSeen': dateTime.toString()
+        'lastSeen': dateTime.toString(),
+        'newLevels': [false, false],
+        'memories': []
       };
 
       await FirebaseFirestore.instance
@@ -89,15 +91,5 @@ class FriendRequest {
               () => debugPrint("Successfully added the data to friendship."))
           .onError((e, _) => debugPrint("Error writing document: $e"));
     }
-  }
-
-  static Future<DocumentSnapshot> _getUserByUsername(String username) async {
-    DocumentSnapshot userSnapshot = await _collection
-        .where("username", isEqualTo: username)
-        .get()
-        .then((querySnapshot) {
-      return querySnapshot.docs.first;
-    });
-    return userSnapshot;
   }
 }
