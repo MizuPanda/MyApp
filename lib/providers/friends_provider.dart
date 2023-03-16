@@ -1,12 +1,9 @@
-import 'package:fade_shimmer/fade_shimmer.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animation_progress_bar/flutter_animation_progress_bar.dart';
-import 'package:glitters/glitters.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:myapp/pages/screens/linking_screen.dart';
-import 'package:myapp/pages/views/friends_view.dart';
 
 import '../models/friend.dart';
+import '../models/myuser.dart';
 
 class FriendProvider extends ChangeNotifier {
   static const _pageSize = 10;
@@ -15,10 +12,11 @@ class FriendProvider extends ChangeNotifier {
   final List<Friend> _friends = [];
   List<Friend> _filteredFriends = [];
   late List<dynamic> _friendsID;
+  bool _isDismissible = false;
+  Filters _currentFilter = Filters.name;
 
   final PagingController<int, Friend> _pagingController =
       PagingController(firstPageKey: 0);
-  bool _shouldGoNext = false;
 
   static final FriendProvider _friendProvider = FriendProvider._internal();
   FriendProvider._internal();
@@ -30,6 +28,7 @@ class FriendProvider extends ChangeNotifier {
   //region GETTERS
   PagingController<int, Friend> get pagingController => _pagingController;
   List<Friend> get friends => _friends;
+  Filters get currentFilter => _currentFilter;
   //endregion
 
   Future<int> awaitFriends() async {
@@ -54,7 +53,8 @@ class FriendProvider extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    _friendsID = await Friend.getFriendsID();
+    MyUser.refreshPlayer();
+    _friends.clear();
     _pagingController.refresh();
   }
 
@@ -74,9 +74,7 @@ class FriendProvider extends ChangeNotifier {
   /*SHOULD SEE WHAT HAPPENS WHEN NEW PAGE (MORE THAN 10 FRIENDS)*/
   ///Get a list of the nth friends
   Future<List<Friend>> getFriendsList(int pageKey) async {
-    if (_friends.isEmpty ||
-        _friends.length != _friendsID.length ||
-        _shouldGoNext) {
+    if (_friends.isEmpty) {
       for (int i = pageKey * _pageSize;
           i < pageKey * _pageSize + _pageSize && i < _friendsID.length;
           i++) {
@@ -84,10 +82,33 @@ class FriendProvider extends ChangeNotifier {
         await friend.awaitFriend();
         _friends.add(friend);
       }
-      _shouldGoNext = false;
     }
 
-    _filteredFriends = _friends;
+    switch (_currentFilter) {
+      case Filters.name:
+        _friends
+            .sort((friend1, friend2) => friend1.name.compareTo(friend2.name));
+        break;
+      case Filters.bestFriends:
+        _friends.sort((friend1, friend2) =>
+            friend1.friendshipPower().compareTo(friend2.friendshipPower()));
+        debugPrint(_friends.first.friendshipPower().toString());
+        debugPrint(_friends.last.friendshipPower().toString());
+        break;
+      case Filters.lastSeen:
+        _friends.sort((friend1, friend2) =>
+            friend1.friendship.lastSeen.compareTo(friend2.friendship.lastSeen));
+        break;
+    }
+
+    Friend bestFriend = Friend.getBestFriend(_friends);
+
+    _filteredFriends = [bestFriend];
+    List<Friend> notBestFriends = [];
+    notBestFriends.addAll(_friends);
+    notBestFriends.remove(bestFriend);
+
+    _filteredFriends.addAll(notBestFriends);
 
     if (_searchTerm != null) {
       _filteredFriends = _filteredFriends
@@ -100,18 +121,40 @@ class FriendProvider extends ChangeNotifier {
     return _filteredFriends;
   }
 
+  void changeFilter(Filters? filter) {
+    if (filter == null) {
+      _currentFilter == Filters.name;
+    } else {
+      _currentFilter = filter;
+    }
+    notifyListeners();
+    _pagingController.refresh();
+  }
+
   void search(String searchTerm) {
     _searchTerm = searchTerm;
-    _pagingController.refresh();
     notifyListeners();
+
+    _pagingController.refresh();
+  }
+
+  bool listFiltered() {
+    if (_searchTerm == null || _searchTerm!.isEmpty) {
+      return false;
+    }
+
+    return _friends.length != _filteredFriends.length;
   }
 
   void clear() {
     searchController.clear();
     _searchTerm = null;
-    _pagingController.refresh();
-    _filteredFriends = _friends;
+    _filteredFriends.clear();
+    _filteredFriends.addAll(_friends);
+
     notifyListeners();
+
+    _pagingController.refresh();
   }
 
   Future<void> _fetchPage(int pageKey) async {
@@ -123,7 +166,6 @@ class FriendProvider extends ChangeNotifier {
       } else {
         final nextPageKey = pageKey + newFriends.length;
         _pagingController.appendPage(newFriends, nextPageKey);
-        _shouldGoNext = true;
       }
       notifyListeners();
     } catch (error) {
@@ -132,9 +174,15 @@ class FriendProvider extends ChangeNotifier {
     }
   }
 
+  void setDismissible(bool boolean) {
+    _isDismissible = boolean;
+    notifyListeners();
+  }
+
   void showLinkingDialog(BuildContext context) {
     showDialog(
       context: context,
+      barrierDismissible: _isDismissible,
       builder: (BuildContext context) {
         return Dialog(
           shape: RoundedRectangleBorder(
@@ -147,177 +195,4 @@ class FriendProvider extends ChangeNotifier {
   }
 }
 
-class FriendListView extends StatefulWidget {
-  const FriendListView({super.key});
-  @override
-  State<FriendListView> createState() => _FriendListViewState();
-}
-
-class _FriendListViewState extends State<FriendListView> {
-  final FriendProvider _provider = FriendProvider();
-
-  @override
-  void initState() {
-    _provider.initState();
-    super.initState();
-  }
-
-  bool isDarkMode = false;
-  @override
-  Widget build(BuildContext context) =>
-      // Don't worry about displaying progress or error indicators on screen; the
-      // package takes care of that. If you want to customize them, use the
-      // [PagedChildBuilderDelegate] properties.
-      FutureBuilder(
-        future: _provider.awaitFriends(),
-        builder: (BuildContext context, AsyncSnapshot snapshot) {
-          if (snapshot.hasData) {
-            return PagedListView<int, Friend>(
-              pagingController: _provider.pagingController,
-              builderDelegate: PagedChildBuilderDelegate<Friend>(
-                firstPageProgressIndicatorBuilder: (BuildContext context) {
-                  return Shimmer(isDarkMode: isDarkMode);
-                },
-                noItemsFoundIndicatorBuilder: (BuildContext context) {
-                  return const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Center(
-                        child: Text(
-                      'No friend found.',
-                      style: TextStyle(fontSize: 20),
-                    )),
-                  );
-                },
-                itemBuilder: (context, item, index) => Stack(
-                  children: [
-                    Column(
-                      children: [
-                        FriendListItem(
-                          friend: item,
-                        ),
-                        Padding(
-                            padding:
-                                const EdgeInsets.only(left: 8.0, right: 8.0),
-                            child: FAProgressBar(
-                              backgroundColor: Colors.white,
-                              progressGradient: const LinearGradient(colors: [
-                                Colors.blueAccent,
-                                Colors.lightBlueAccent,
-                              ]),
-                              currentValue: item.friendship.progress,
-                              maxValue: item.friendship.max(),
-                            )),
-                      ],
-                    ),
-                    AnimatedBuilder(
-                        animation: _provider,
-                        builder: (BuildContext context, Widget? child) {
-                          bool first = true;
-                          if (_provider.needAnimation(item)) {
-                            if(first) {
-                              WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-                                await _provider.animateNewLevel(item);
-                              });
-                              first = false;
-                            }
-                            return const IgnorePointer(
-                              child: GlitterStack(
-                                height: 80,
-                                width: double.maxFinite,
-                                duration: Duration(milliseconds: 500),
-                                interval: Duration.zero,
-                                children: [
-                                  Glitters(),
-                                  Glitters(),
-                                  Glitters(),
-                                  Glitters()
-                                ],
-                              ),
-                            );
-                          } else {
-                            return const IgnorePointer(child: SizedBox());
-                          }
-                        })
-                  ],
-                ),
-              ),
-            );
-          } else {
-            return Shimmer(isDarkMode: isDarkMode);
-          }
-        },
-      );
-
-  @override
-  void dispose() {
-    _provider.disposePage();
-    super.dispose();
-  }
-}
-
-class Shimmer extends StatelessWidget {
-  const Shimmer({
-    super.key,
-    required this.isDarkMode,
-  });
-
-  final bool isDarkMode;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.maxFinite,
-      height: double.maxFinite,
-      child: ListView.separated(
-        itemBuilder: (_, i) {
-          final delay = (i * 300);
-          return Container(
-            decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xff242424) : Colors.white,
-                borderRadius: BorderRadius.circular(8)),
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                FadeShimmer.round(
-                  size: 80,
-                  fadeTheme: isDarkMode ? FadeTheme.dark : FadeTheme.light,
-                  millisecondsDelay: delay,
-                ),
-                const SizedBox(
-                  width: 8,
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FadeShimmer(
-                      height: 11,
-                      width: 150,
-                      radius: 4,
-                      millisecondsDelay: delay,
-                      fadeTheme: isDarkMode ? FadeTheme.dark : FadeTheme.light,
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    FadeShimmer(
-                      height: 11,
-                      millisecondsDelay: delay,
-                      width: 170,
-                      radius: 4,
-                      fadeTheme: isDarkMode ? FadeTheme.dark : FadeTheme.light,
-                    ),
-                  ],
-                )
-              ],
-            ),
-          );
-        },
-        itemCount: 20,
-        separatorBuilder: (_, __) => const SizedBox(
-          height: 16,
-        ),
-      ),
-    );
-  }
-}
+enum Filters { name, bestFriends, lastSeen }

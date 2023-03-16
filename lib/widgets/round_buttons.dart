@@ -8,15 +8,23 @@ class RoundButton extends StatefulWidget {
   final Color? colorUnpressed;
   final bool? shouldGrow;
   final Color? borderColor;
-  const RoundButton({Key? key, required this.icon, required this.onPressed, required this.size, this.colorPressed, this.colorUnpressed, this.shouldGrow, this.borderColor}) : super(key: key);
+  const RoundButton(
+      {Key? key,
+      required this.icon,
+      required this.onPressed,
+      required this.size,
+      this.colorPressed,
+      this.colorUnpressed,
+      this.shouldGrow,
+      this.borderColor})
+      : super(key: key);
 
   @override
   State<RoundButton> createState() => _RoundButtonState();
 }
 
-class _RoundButtonState extends State<RoundButton>  {
+class _RoundButtonState extends State<RoundButton> {
   bool _isPressed = false;
-
 
   @override
   Widget build(BuildContext context) {
@@ -38,17 +46,27 @@ class _RoundButtonState extends State<RoundButton>  {
       },
       child: Container(
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(width: 3,color: widget.borderColor == null?Colors.white: widget.borderColor!,)
-        ),
+            shape: BoxShape.circle,
+            border: Border.all(
+              width: 3,
+              color: widget.borderColor == null
+                  ? Colors.white
+                  : widget.borderColor!,
+            )),
         child: IconButton(
-          color: widget.colorPressed != null? (!_isPressed? widget.colorUnpressed:widget.colorPressed): widget.colorUnpressed,
+          color: widget.colorPressed != null
+              ? (!_isPressed ? widget.colorUnpressed : widget.colorPressed)
+              : widget.colorUnpressed,
           alignment: Alignment.center,
           onPressed: () {
-          widget.onPressed();
-        },
+            widget.onPressed();
+          },
           icon: Icon(widget.icon),
-         iconSize: widget.shouldGrow!=null? (widget.shouldGrow!? (_isPressed? widget.size*1.2: widget.size) : widget.size) : widget.size,
+          iconSize: widget.shouldGrow != null
+              ? (widget.shouldGrow!
+                  ? (_isPressed ? widget.size * 1.2 : widget.size)
+                  : widget.size)
+              : widget.size,
         ),
       ),
     );

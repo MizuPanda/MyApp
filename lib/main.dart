@@ -13,15 +13,13 @@ import 'models/myuser.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown
-  ]
-  );
+  SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  checkPerm();
+
+  await checkPerm();
   await CameraProvider.availableCamera();
   runApp(const MyApp());
 }
@@ -77,27 +75,11 @@ class _SelectPageState extends State<SelectPage> {
   bool first = true;
   @override
   Widget build(BuildContext context) {
-    /*
-    if(first) {
-      WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        cameraProvider.showCameraDialog(context);
-        setState(() {
-          first = false;
-        });
-      });
-    }
-    return Container(
-      color: Colors.white,
-    );
-
-     */
 
     if (MyUser.getUser() != null) {
       return const MainPage();
     } else {
       return const LoginPage();
     }
-
-
   }
 }

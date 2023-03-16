@@ -4,7 +4,7 @@ import 'package:myapp/models/myuser.dart';
 class SocialRank {
   static Future<void> addPower(double d, {String? friendId}) async {
     String id;
-    if(friendId != null) {
+    if (friendId != null) {
       id = friendId;
     } else {
       id = MyUser.getUser()!.uid;
@@ -12,12 +12,9 @@ class SocialRank {
 
     FirebaseFirestore db = FirebaseFirestore.instance;
 
-
     await db
         .collection('users')
         .doc(id)
-        .update({
-         'power': FieldValue.increment(d)
-        });
+        .update({'power': FieldValue.increment(d)});
   }
 }

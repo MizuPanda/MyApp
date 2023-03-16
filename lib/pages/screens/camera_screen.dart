@@ -18,18 +18,24 @@ class _CameraScreenState extends State<CameraScreen> {
   final CameraProvider _provider = CameraProvider();
 
   @override
-  void dispose() {
+  void dispose() async {
     super.dispose();
+    if (!_provider.successful) {
+      await _provider.setPictureAbandoned();
+    }
+    _provider.resetPicture();
+  }
+
+  @override
+  void initState() {
+    _provider.successful = false;
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     void push() {
       context.push('/camera');
-    }
-
-    void disposeAll() {
-      Navigator.of(context).popUntil(ModalRoute.withName('/main'));
     }
 
     return Container(
@@ -51,15 +57,14 @@ class _CameraScreenState extends State<CameraScreen> {
                       children: [
                         TextButton(
                             onPressed: () {
-                              _provider.skip(
-                                  DateTime.now().toUtc(), disposeAll);
+                              _provider.skip(DateTime.now().toUtc());
                             },
                             child: const Text('Skip')),
                         TextButton(
                             onPressed: (_provider.getLastFile() == null)
                                 ? null
                                 : () {
-                                    _provider.next(disposeAll);
+                                    _provider.next();
                                   },
                             child: const Text('Continue'))
                       ],

@@ -8,18 +8,18 @@ class MyUser {
 
   static Player? _instance;
 
-    static Future<DocumentSnapshot?> getUserByCounter(int counterValue) async {
-      final collectionRef = _db.collection('users');
-      final querySnapshot = await collectionRef.where('counter', isEqualTo: counterValue).get();
-      if (querySnapshot.docs.isNotEmpty) {
-        final userDoc = querySnapshot.docs.first;
-        return userDoc;
-      } else {
-        return null;
-      }
-
-
+  static Future<DocumentSnapshot?> getUserByCounter(int counterValue) async {
+    final collectionRef = _db.collection('users');
+    final querySnapshot =
+        await collectionRef.where('counter', isEqualTo: counterValue).get();
+    if (querySnapshot.docs.isNotEmpty) {
+      final userDoc = querySnapshot.docs.first;
+      return userDoc;
+    } else {
+      return null;
+    }
   }
+
   static Future<DocumentSnapshot> getUserData(String id) async {
     DocumentSnapshot docs = await _db.collection('users').doc(id).get();
 
@@ -27,12 +27,13 @@ class MyUser {
   }
 
   static Future<Player> getInstance() async {
-    if(_instance == null) {
+    if (_instance == null) {
       DocumentSnapshot docs = await getUserData(getUser()!.uid);
       String data = docs.data().toString();
-      _instance =  Player(
+      _instance = Player(
         username: data.contains('username') ? docs.get('username') : '',
-        friendsID: data.contains('friends') ? docs.get('friends') : List.empty(),
+        friendsID:
+            data.contains('friends') ? docs.get('friends') : List.empty(),
         counter: data.contains('counter') ? docs.get('counter') : -1,
       );
     }
@@ -41,13 +42,12 @@ class MyUser {
   }
 
   static void refreshPlayer() {
-      _instance == null;
+    _instance == null;
   }
 
   static User? getUser() {
     return _fb.currentUser;
   }
-
 
   static Future<bool> isUsernameTaken(String username) async {
     final QuerySnapshot result = await _db
@@ -58,8 +58,8 @@ class MyUser {
     return documents.isNotEmpty;
   }
 
-  static Future<String?> createUserWithEmailAndPassword(String email, String password,
-      String name, String username, String country) async {
+  static Future<String?> createUserWithEmailAndPassword(String email,
+      String password, String name, String username, String country) async {
     try {
       UserCredential result = await _fb.createUserWithEmailAndPassword(
         email: email,
@@ -78,16 +78,15 @@ class MyUser {
 
   static Future<void> _registerUserData(
       String name, String username, String countryCode) async {
-    DocumentReference numberReference = _db
+    await _db
         .collection('data')
-        .doc('numbers');
+        .doc('numbers')
+        .update({'counter': FieldValue.increment(1)});
 
-    DocumentSnapshot numberDocs = await numberReference.get();
-    int counter = numberDocs.get('counter');
-    final newCounter = <String, dynamic> {
-      'counter': counter+1
-    };
-    numberReference.set(newCounter);
+    DocumentSnapshot docs = await _db.collection('data').doc('numbers').get();
+
+    int counter =
+        docs.data().toString().contains('counter') ? docs.get('counter') : 0;
 
     final userInfo = <String, dynamic>{
       "name": name,
@@ -114,6 +113,6 @@ class Player {
   List<dynamic> friendsID;
   int counter;
 
-
-  Player({required this.username, required this.friendsID, required this.counter});
+  Player(
+      {required this.username, required this.friendsID, required this.counter});
 }

@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:myapp/providers/nearby_provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 import 'myuser.dart';
@@ -14,18 +13,22 @@ class Friendship {
   late final int userIndex;
   List<String> ids;
 
-  String timeAgo() {
-    DateTime dateTime = lastSeen.toLocal();
-    return timeago.format(dateTime);
-  }
   double max() {
+    if (level == 0) {
+      return 5;
+    }
     if (level < 10) {
       return level * 10;
     }
     return 100;
   }
+
   String _docId() {
     return ids.first + ids.last;
+  }
+
+  String timeAgo() {
+    return timeago.format(lastSeen);
   }
 
   static final CollectionReference _collection =
@@ -37,33 +40,28 @@ class Friendship {
     ids.sort();
   }
 
-  static Future<void> removePictureTaker(String docId) async {
-    await _collection.doc(docId).update({
-      'pictureTaker': ''
-    });
-  }
-
   Future<void> awaitFriendship() async {
-    DocumentSnapshot friendship = await _collection.doc(_docId()).get();
+    String docId = _docId();
+    DocumentSnapshot friendship = await _collection.doc(docId).get();
     String data = friendship.data().toString();
-    progress = data.contains('progress')
-        ? friendship.get('progress').toDouble()
-        : -1;
-    level = data.contains('level')
-        ? friendship.get('level')
-        : -1;
+    progress =
+        data.contains('progress') ? friendship.get('progress').toDouble() : -1;
+    level = data.contains('level') ? friendship.get('level') : -1;
     lastSeen = data.contains('lastSeen')
         ? DateTime.parse(friendship.get('lastSeen'))
         : DateTime.parse('');
-    newLevels = data.contains('newLevels')? friendship.get('newLevels'): List.empty();
-    memories =  data.contains('memories')? friendship.get('memories'): List.empty();
+    bool newLevel0 =
+        data.contains('newLevel0') ? friendship.get('newLevel0') : false;
+    bool newLevel1 =
+        data.contains('newLevel1') ? friendship.get('newLevel1') : false;
+    newLevels = [newLevel0, newLevel1];
+    memories =
+        data.contains('memories') ? friendship.get('memories') : List.empty();
   }
 
   Future<void> hasAnimatedLevel() async {
     newLevels[userIndex] = false;
-    await _collection.doc(_docId()).update({
-      'newLevels': newLevels
-    });
+    await _collection.doc(_docId()).update({'newLevel$userIndex': false});
   }
 
   void _verifyLevel() {
@@ -86,26 +84,26 @@ class Friendship {
   Future<void> addProgress(double d, {DateTime? dateTime}) async {
     progress += d;
     _verifyLevel();
+    String docId = _docId();
+    if (dateTime != null) {
+      lastSeen = dateTime;
 
-    if(dateTime != null) {
-      await _collection.doc(_docId()).update(
-          { //IN CASE OF SINGLE LINK
-            'progress': progress,
-            'lastSeen': dateTime.toString(),
-            'level':level,
-            'pictureTaker': NearbyProvider.taken,
-            'memories': FieldValue.arrayUnion([dateTime]),
-            'newLevels': newLevels
-          }
-      );
+      await _collection.doc(docId).update({
+        //IN CASE OF SINGLE LINK
+        'progress': progress,
+        'lastSeen': lastSeen.toString(),
+        'level': level,
+        'newLevel0': newLevels.first,
+        'newLevel1': newLevels.last,
+        'memories': FieldValue.arrayUnion([dateTime.toString()]),
+      });
     } else {
       await _collection.doc(_docId()).update({
         'progress': progress,
-        'level':level,
-        'newLevels': newLevels
+        'level': level,
+        'newLevel0': newLevels.first,
+        'newLevel1': newLevels.last
       });
     }
   }
 }
-
-

@@ -1,15 +1,14 @@
 import 'package:camera/camera.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:myapp/models/friend_request.dart';
-import 'package:myapp/providers/friends_provider.dart';
 import 'package:myapp/providers/nearby_provider.dart';
 import 'package:photo_view/photo_view.dart';
 
 import 'dart:io' show File, Platform;
-
 
 class CameraProvider extends ChangeNotifier {
   static late List<CameraDescription> _cameras;
@@ -17,51 +16,78 @@ class CameraProvider extends ChangeNotifier {
   late AnimationController _animationController;
   late FlashState _flashState = FlashState.off;
   static XFile? _lastFile;
+  bool successful = false;
 
   IconData data = Icons.flash_off_rounded;
 
-  Future<void> skip(DateTime dateTime, Function disposeAll) async {
-    await FriendRequest.accomplishLinking(dateTime);
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      disposeAll();
-    });
+  void resetPicture() {
+    _lastFile = null;
+    notifyListeners();
+  }
 
-    FriendProvider().refresh();
+  Future<void> setPictureAbandoned() async {
+    await FirebaseFirestore.instance
+        .collection('friendships')
+        .doc(NearbyProvider.getFriendshipId())
+        .update({'pictureTaker': NearbyProvider.abandoned});
+  }
+
+  Future<void> skip(DateTime dateTime) async {
+    await FriendRequest.accomplishLinking(dateTime);
+    successful = true;
+    await FirebaseFirestore.instance
+        .collection('friendships')
+        .doc(NearbyProvider.getFriendshipId())
+        .update({'pictureTaker': NearbyProvider.taken});
     notifyListeners();
   }
 
   Future<File> _changeFileNameOnly(File file, String newFileName) {
     var path = file.path;
     var lastSeparator = path.lastIndexOf(Platform.pathSeparator);
-    var newPath = path.substring(0, lastSeparator + 1) + newFileName;
+    var fileExtension = path.lastIndexOf('.');
+    var newPath = path.substring(0, lastSeparator + 1) +
+        newFileName +
+        path.substring(fileExtension);
     return file.rename(newPath);
   }
 
   Future<void> _downloadFile(String friendshipId, DateTime dateTime) async {
     File? file = File(_lastFile!.path);
-    file =  await _changeFileNameOnly(file, dateTime.toUtc().toString());
+    file = await _changeFileNameOnly(file, dateTime.toUtc().toString());
+    final filePath = file.absolute.path;
+    // Create output file path
+    // eg:- "Volume/VM/abcd_out.jpeg"
+    final lastIndex = filePath.lastIndexOf(RegExp(r'.jp'));
+    final substring = filePath.substring(0, (lastIndex));
+    final outPath = "${substring}_out${filePath.substring(lastIndex)}";
+
+    debugPrint(file.path);
     file = await FlutterImageCompress.compressAndGetFile(
-      file.absolute.path,
-      file.absolute.path,
-      quality: 85,
+      filePath,
+      outPath,
+      quality: 50,
     );
 
     try {
       final fileName = file!.path.split('/').last;
-      final storageRef = FirebaseStorage.instance.ref().child('friendships/$friendshipId/$fileName');
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('friendships/$friendshipId/$fileName');
       final uploadTask = storageRef.putFile(file);
-      await uploadTask.whenComplete(() => debugPrint('Picture uploaded to Firebase Storage'));
-    } catch(e) {
+      await uploadTask.whenComplete(
+          () => debugPrint('Picture uploaded to Firebase Storage'));
+    } catch (e) {
       debugPrint(e.toString());
     }
   }
 
-  Future<void> next(Function disposeAll) async {
+  Future<void> next() async {
     DateTime dateTime = DateTime.now().toUtc();
     String friendshipId = NearbyProvider.getFriendshipId();
     //ADD FILE TO STORAGE
     await _downloadFile(friendshipId, dateTime);
-    await skip(dateTime, disposeAll);
+    await skip(dateTime);
   }
 
   void changeFlashState() {

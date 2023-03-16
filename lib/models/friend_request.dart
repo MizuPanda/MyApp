@@ -4,9 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:myapp/models/events.dart';
 import 'package:myapp/models/myuser.dart';
 
-
-
-
 class FriendRequest {
   static final CollectionReference _collection =
       FirebaseFirestore.instance.collection('users');
@@ -15,15 +12,11 @@ class FriendRequest {
     // Add the sender's ID to the receiver's requestId
     User user = MyUser.getUser()!;
     String senderId = user.uid;
-    await _collection.doc(receiverId).update({
-      'requestId': senderId
-    });
+    await _collection.doc(receiverId).update({'requestId': senderId});
   }
 
   static Future<void> removeFriendRequest() async {
-      await _collection.doc(MyUser.getUser()!.uid).update({
-        'requestId': ''
-      });
+    await _collection.doc(MyUser.getUser()!.uid).update({'requestId': ''});
   }
 
   static Future<void> accomplishLinking(DateTime dateTime) async {
@@ -31,26 +24,33 @@ class FriendRequest {
 
     //Get requestId
     DocumentSnapshot senderData = await _collection.doc(userId).get();
-    String requestId = senderData.data().toString().contains('requestId') ? senderData.get('requestId') : '';
+    String requestId = senderData.data().toString().contains('requestId')
+        ? senderData.get('requestId')
+        : '';
+    List<dynamic> friendsID = senderData.data().toString().contains('friends')
+        ? senderData.get('friends')
+        : List.empty();
 
-      // Set requestId to none
-      removeFriendRequest();
-      await _collection.doc(requestId).update({
-        'requestId': ''
-      });
+    // Set requestId to none
+    await removeFriendRequest();
+    await _collection.doc(requestId).update({'requestId': ''});
 
-      Player player = await MyUser.getInstance();
-      bool isFriend = player.friendsID.every((id) => id == requestId);
+    //Player player = await MyUser.getInstance();
+    bool isFriend = friendsID.every((id) => id == requestId);
+    debugPrint(friendsID.toString());
 
-      if(isFriend) {
-        await Events.singleLinking(requestId, dateTime);
-      } else {
-        await _setNewFriends(userId, requestId, dateTime);
-        MyUser.refreshPlayer();
-      }
+    if (isFriend) {
+      await Events.singleLinking(requestId, dateTime);
+    } else {
+      await _setNewFriends(userId, requestId, dateTime);
+    }
+
+    List<String> ids = [userId, requestId];
+    ids.sort();
   }
 
-  static Future<void> _setNewFriends(String userId, String requestId, DateTime dateTime) async {
+  static Future<void> _setNewFriends(
+      String userId, String requestId, DateTime dateTime) async {
     // Add the request ID to the friends list
     await _collection.doc(requestId).update({
       'friends': FieldValue.arrayUnion([userId]),
@@ -58,38 +58,50 @@ class FriendRequest {
     });
     await _collection.doc(userId).update({
       'friends': FieldValue.arrayUnion([requestId]),
-      'power':FieldValue.increment(Events.singleLinkPow)
+      'power': FieldValue.increment(Events.singleLinkPow)
     });
 
     //Create a new friendship
     _createFriendship(userId, requestId, dateTime);
-    }
+  }
 
-
-  static void _createFriendship(String senderId, String receiverId, DateTime dateTime) async {
+  static void _createFriendship(
+      String senderId, String receiverId, DateTime dateTime) async {
     DocumentSnapshot receiver = await _collection.doc(receiverId).get();
 
     List<String> ids = [senderId, receiver.id];
+    ids.sort();
+    final friendshipInfo = <String, dynamic>{
+      "friends": [ids.first, ids.last],
+      "level": 0,
+      "progress": 0,
+      'lastSeen': dateTime.toString(),
+      'pictureTaker': '',
+      'memories': [],
+      'newLevel0': false,
+      'newLevel1': false,
+    };
+    final readyInfo = <String, dynamic>{
+      'ready0': false,
+      'ready1': false,
+    };
 
-    DocumentSnapshot docs = await FirebaseFirestore.instance.collection('friendships').doc(ids.first + ids.last).get();
-    if(!docs.exists) {
-      ids.sort();
-      final friendshipInfo = <String, dynamic>{
-        "friends": [ids.first, ids.last],
-        "level": 0,
-        "progress": 0,
-        'lastSeen': dateTime.toString(),
-        'newLevels': [false, false],
-        'memories': []
-      };
-
-      await FirebaseFirestore.instance
-          .collection('friendships')
-          .doc(ids.first + ids.last)
-          .set(friendshipInfo)
-          .whenComplete(
-              () => debugPrint("Successfully added the data to friendship."))
-          .onError((e, _) => debugPrint("Error writing document: $e"));
-    }
+    String docId = ids.first + ids.last;
+    await FirebaseFirestore.instance
+        .collection('friendships')
+        .doc(docId)
+        .set(friendshipInfo)
+        .whenComplete(
+            () => debugPrint("Successfully added the data to friendship."))
+        .onError((e, _) => debugPrint("Error writing document: $e"));
+    await FirebaseFirestore.instance
+        .collection('friendships')
+        .doc(docId)
+        .collection('values')
+        .doc('ready')
+        .set(readyInfo)
+        .whenComplete(
+            () => debugPrint("Successfully added the ready to friendship."))
+        .onError((e, _) => debugPrint("Error writing ready document: $e"));
   }
 }

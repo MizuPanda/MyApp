@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:myapp/pages/views/subviews/friend_list_view.dart';
 import 'package:myapp/providers/friends_provider.dart';
 
-
-import '../../models/friend.dart';
 import '../../widgets/expandable.dart';
 
 class FriendsPage extends StatefulWidget {
@@ -12,101 +11,89 @@ class FriendsPage extends StatefulWidget {
   State<FriendsPage> createState() => _FriendsPageState();
 }
 
-class _FriendsPageState extends State<FriendsPage> with AutomaticKeepAliveClientMixin {
+class _FriendsPageState extends State<FriendsPage>
+    with AutomaticKeepAliveClientMixin {
   final FriendProvider _provider = FriendProvider();
-
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
     return AnimatedBuilder(
-      animation: _provider,
-      builder: (BuildContext context, Widget? child) {
-        return Scaffold(
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            title: TextField(
-                controller: _provider.searchController,
-                decoration: InputDecoration(
-                  fillColor: Colors.white,
-                  filled: true,
-                  hintText: 'Search friends',
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: _provider.clear,
-                  ),
-                ),
-                onChanged: _provider.search),
-          ),
-          body: Stack(
-            children: [
-              const FriendListView(),
-              Container(
-                alignment: Alignment.bottomRight,
-                padding: const EdgeInsets.all(10),
-                child: ExpandableFab(
-                  distance: 80,
-                  children: [
-                    ActionButton(
-                      onPressed: () {
-                        _provider.showLinkingDialog(context);
-                      },
-                      icon: const Icon(Icons.flash_on),
+        animation: _provider,
+        builder: (BuildContext context, Widget? child) {
+          return Scaffold(
+            appBar: AppBar(
+              automaticallyImplyLeading: false,
+              title: TextField(
+                  controller: _provider.searchController,
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(10))),
+                    fillColor: Colors.white,
+                    filled: true,
+                    hintText: 'Search friends',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: _provider.clear,
                     ),
-                    ActionButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.thunderstorm),
+                  ),
+                  onChanged: _provider.search),
+              actions: [
+                IconButton(
+                    onPressed: () {},
+                    icon: const Icon(
+                      Icons.groups,
+                    )),
+                PopupMenuButton(
+                  icon: const Icon(Icons.format_list_bulleted_rounded),
+                  onSelected: _provider.changeFilter,
+                  itemBuilder: (BuildContext context) =>
+                      <PopupMenuEntry<Filters>>[
+                    const PopupMenuItem<Filters>(
+                      value: Filters.name,
+                      child: Text('By name'),
+                    ),
+                    const PopupMenuItem<Filters>(
+                      value: Filters.bestFriends,
+                      child: Text('By best friends'),
+                    ),
+                    const PopupMenuItem<Filters>(
+                      value: Filters.lastSeen,
+                      child: Text('By last seen'),
                     ),
                   ],
-                ),
-              )
-            ],
-          ),
-        );
-      }
-    );
+                )
+              ],
+            ),
+            body: Stack(
+              children: [
+                const FriendListView(),
+                Container(
+                  alignment: Alignment.bottomRight,
+                  padding: const EdgeInsets.all(10),
+                  child: ExpandableFab(
+                    distance: 80,
+                    children: [
+                      ActionButton(
+                        onPressed: () {
+                          _provider.showLinkingDialog(context);
+                        },
+                        icon: const Icon(Icons.flash_on),
+                      ),
+                      ActionButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.thunderstorm),
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          );
+        });
   }
 
   @override
   // TODO: implement wantKeepAlive
   bool get wantKeepAlive => true;
 }
-
-class FriendListItem extends StatelessWidget {
-  final Friend friend;
-
-
-  const FriendListItem({super.key, required this.friend});
-
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundImage: friend.photo,
-      ),
-      title: Text(maxLines: 1, friend.name),
-      subtitle: Text(friend.username),
-      trailing: SizedBox(
-        width: 175,
-        child: Column(
-          children: [
-            Align(
-                alignment: Alignment.centerRight,
-                child:
-                Text('Lvl ${friend.friendship.level}')),
-            const Spacer(),
-            const Align(
-                alignment: Alignment.centerRight,
-                child: Text('Last seen')),
-            Align(
-                alignment: Alignment.centerRight,
-                child: Text(friend.friendship.timeAgo())
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
-

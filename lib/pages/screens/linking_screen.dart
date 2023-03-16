@@ -1,10 +1,8 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
 import 'package:myapp/pages/screens/subscreens/nearby_subscreen.dart';
 import 'package:myapp/providers/nearby_provider.dart';
 import 'package:myapp/widgets/progress_indactor.dart';
-
 
 class LinkingScreen extends StatefulWidget {
   const LinkingScreen({Key? key}) : super(key: key);
@@ -16,16 +14,19 @@ class LinkingScreen extends StatefulWidget {
 class _LinkingScreenState extends State<LinkingScreen> {
   @override
   void dispose() {
-      super.dispose();
+    super.dispose();
   }
+
   final NearbyProvider _nearbyProvider = NearbyProvider();
 
   String _title = 'Nearby Users';
   void _refreshTitle() {
     setState(() {
-      _title = _nearbyProvider.isAwaitingPairing()? 'Nearby Users': 'Linking...';
+      _title =
+          _nearbyProvider.isAwaitingPairing() ? 'Nearby Users' : 'Linking...';
     });
   }
+
   final FlutterBlePeripheral _peripheral = FlutterBlePeripheral();
 
   @override
@@ -41,14 +42,18 @@ class _LinkingScreenState extends State<LinkingScreen> {
             if (snapshot.hasData && snapshot.data == true) {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children:  <Widget>[
-                  Text(_title,
+                children: <Widget>[
+                  Text(
+                    _title,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20.0,
                     ),
                   ),
-                  NearbyDevicesList(disposeSuper: dispose, notifyParent: _refreshTitle,),
+                  NearbyDevicesList(
+                    disposeSuper: dispose,
+                    notifyParent: _refreshTitle,
+                  ),
                   const SizedBox(height: 20.0),
                   // Add your linking form widgets here
                 ],
@@ -60,5 +65,3 @@ class _LinkingScreenState extends State<LinkingScreen> {
     );
   }
 }
-
-

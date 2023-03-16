@@ -3,12 +3,10 @@ import 'package:myapp/models/myuser.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
-
 class SignProvider extends ChangeNotifier {
   final formKey1 = GlobalKey<FormState>();
   final formKey2 = GlobalKey<FormState>();
   final formKey3 = GlobalKey<FormState>();
-
 
   late String _name, _username, _email, _password = "";
 
@@ -23,11 +21,12 @@ class SignProvider extends ChangeNotifier {
   String? _error;
   bool _hasError = false;
 
-
   Future<String?> getCountryCode() async {
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low);
     debugPrint('location: ${position.latitude}');
-    final address = await placemarkFromCoordinates(position.latitude, position.longitude);
+    final address =
+        await placemarkFromCoordinates(position.latitude, position.longitude);
     String? countryCode = address.first.isoCountryCode;
 
     return countryCode;

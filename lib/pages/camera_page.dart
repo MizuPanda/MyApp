@@ -28,12 +28,10 @@ class _CameraPageState extends State<CameraPage>
     super.dispose();
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     void pop() {
-       Navigator.of(context).pop();
+      Navigator.of(context).pop();
     }
 
     return AnimatedBuilder(
@@ -52,7 +50,16 @@ class _CameraPageState extends State<CameraPage>
             title: const Text('Add a picture to this Memory'),
           ),
           resizeToAvoidBottomInset: false,
-          bottomNavigationBar: const BottomAppBar(color: Colors.black, height: 60, child: Center(child: Text('Take a picture!', textAlign: TextAlign.center, style: TextStyle(fontSize: 25, color: Colors.white),)),),
+          bottomNavigationBar: const BottomAppBar(
+            color: Colors.black,
+            height: 60,
+            child: Center(
+                child: Text(
+              'Take a picture!',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 25, color: Colors.white),
+            )),
+          ),
           body: Container(
               color: Colors.black,
               alignment: Alignment.center,
