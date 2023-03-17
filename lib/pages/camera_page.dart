@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/widgets/round_buttons.dart';
+import 'package:myapp/widgets/buttons.dart';
 
 import '../providers/camera_provider.dart';
-import '../widgets/progress_indactor.dart';
+import '../widgets/progress_indicator.dart';
 
 class CameraPage extends StatefulWidget {
   /// Default Constructor

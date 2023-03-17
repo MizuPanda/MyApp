@@ -35,6 +35,7 @@ class MyUser {
         friendsID:
             data.contains('friends') ? docs.get('friends') : List.empty(),
         counter: data.contains('counter') ? docs.get('counter') : -1,
+        palaceName: data.contains('palaceName') ? docs.get('palaceName') : '',
       );
     }
 
@@ -93,9 +94,11 @@ class MyUser {
       "username": username,
       'counter': counter,
       "country": countryCode,
+      'palaceName': '',
       "power": 0,
       "requestId": '',
-      "friends": []
+      "friends": [],
+      'linked': []
     };
 
     _db
@@ -112,7 +115,8 @@ class Player {
   String username;
   List<dynamic> friendsID;
   int counter;
+  String palaceName;
 
   Player(
-      {required this.username, required this.friendsID, required this.counter});
+      {required this.username, required this.friendsID, required this.counter, required this.palaceName});
 }

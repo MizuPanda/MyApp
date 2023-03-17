@@ -46,7 +46,7 @@ class Friendship {
     String data = friendship.data().toString();
     progress =
         data.contains('progress') ? friendship.get('progress').toDouble() : -1;
-    level = data.contains('level') ? friendship.get('level') : -1;
+    level = data.contains('level') ? friendship.get('level') : 0;
     lastSeen = data.contains('lastSeen')
         ? DateTime.parse(friendship.get('lastSeen'))
         : DateTime.parse('');

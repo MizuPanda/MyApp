@@ -4,10 +4,12 @@ import 'package:myapp/pages/screens/linking_screen.dart';
 
 import '../models/friend.dart';
 import '../models/myuser.dart';
+import '../pages/screens/dual_linking_screen.dart';
 
 class FriendProvider extends ChangeNotifier {
   static const _pageSize = 10;
   String? _searchTerm;
+  FocusNode focusNode = FocusNode();
   final searchController = TextEditingController();
   final List<Friend> _friends = [];
   List<Friend> _filteredFriends = [];
@@ -18,12 +20,15 @@ class FriendProvider extends ChangeNotifier {
   final PagingController<int, Friend> _pagingController =
       PagingController(firstPageKey: 0);
 
+
+  //region Singleton
   static final FriendProvider _friendProvider = FriendProvider._internal();
   FriendProvider._internal();
 
   factory FriendProvider() {
     return _friendProvider;
   }
+  //endregion
 
   //region GETTERS
   PagingController<int, Friend> get pagingController => _pagingController;
@@ -92,8 +97,6 @@ class FriendProvider extends ChangeNotifier {
       case Filters.bestFriends:
         _friends.sort((friend1, friend2) =>
             friend1.friendshipPower().compareTo(friend2.friendshipPower()));
-        debugPrint(_friends.first.friendshipPower().toString());
-        debugPrint(_friends.last.friendshipPower().toString());
         break;
       case Filters.lastSeen:
         _friends.sort((friend1, friend2) =>
@@ -113,7 +116,7 @@ class FriendProvider extends ChangeNotifier {
     if (_searchTerm != null) {
       _filteredFriends = _filteredFriends
           .where((friend) =>
-              friend.name.toLowerCase().contains(_searchTerm!.toLowerCase()))
+      friend.name.toLowerCase().contains(_searchTerm!.toLowerCase()) || friend.username.toLowerCase().contains(_searchTerm!.toLowerCase()))
           .toList();
     }
 
@@ -148,6 +151,7 @@ class FriendProvider extends ChangeNotifier {
 
   void clear() {
     searchController.clear();
+    focusNode.unfocus();
     _searchTerm = null;
     _filteredFriends.clear();
     _filteredFriends.addAll(_friends);
@@ -189,6 +193,20 @@ class FriendProvider extends ChangeNotifier {
             borderRadius: BorderRadius.circular(10.0),
           ),
           child: const LinkingScreen(),
+        );
+      },
+    );
+  }
+
+  void showDualLinkingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: const DualLinkingScreen(),
         );
       },
     );

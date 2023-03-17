@@ -2,25 +2,24 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
 import 'package:myapp/models/friend_request.dart';
 import 'package:myapp/providers/friends_provider.dart';
 
+import '../models/bluetooth.dart';
 import '../models/friendships.dart';
 import '../models/myuser.dart';
 
 class NearbyProvider extends ChangeNotifier {
-  final _ble = FlutterReactiveBle();
-  final _scannedDevices = <ScannedDevice>[];
-  static const app = "myapp0";
+  final _scannedDevices = <_ScannedDevice>[];
+  static const _typeConstant = '0';
   static const taken = 'TAKEN';
   static const abandoned = 'ABANDONED';
   bool _isAwaitingPairing = false;
-  static ScannedDevice? _lastDevice;
+  static _ScannedDevice? _lastDevice;
   static bool _userPaired = false;
   late StreamSubscription<DocumentSnapshot> _userStream;
   late StreamSubscription<DocumentSnapshot> _pictureStream;
+
 
   NearbyProvider() {
     FriendRequest.removeFriendRequest();
@@ -35,50 +34,6 @@ class NearbyProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  String _getAppCode() {
-    String base = '';
-    for (int i = 0; i < app.length; i++) {
-      base += app.codeUnitAt(i).toString();
-    }
-
-    return base;
-  }
-
-  String _getAppUuid() {
-    String base = _getAppCode();
-
-    String first = '${base.substring(0, 8)}-';
-    String middle = '${base.substring(8, 12)}-';
-    String last = base.substring(12, 16);
-
-    return first + middle + last;
-  }
-
-  StreamSubscription? _scanSubscription;
-
-  String _serviceUuid(int counter) {
-    String base = _getAppCode();
-
-    int numberOfZeros = 32 - base.length - counter.toString().length;
-
-    for (int i = 0; i < numberOfZeros; i++) {
-      base += '0';
-    }
-
-    base += counter.toString();
-    String first = '${base.substring(0, 8)}-';
-    String second = '${base.substring(8, 12)}-';
-    String third = '${base.substring(12, 16)}-';
-    String fourth = '${base.substring(16, 20)}-';
-    String fifth = base.substring(20, 32);
-
-    return first + second + third + fourth + fifth;
-  }
-
-  String name(int index) {
-    return _scannedDevices[index].name;
-  }
-
   String username(int index) {
     return _scannedDevices[index].username;
   }
@@ -91,74 +46,18 @@ class NearbyProvider extends ChangeNotifier {
     return _scannedDevices[index].alreadyFriend;
   }
 
+  ImageProvider avatar(int index) {
+    return _scannedDevices[index].avatar;
+  }
+
   int length() {
     return _scannedDevices.length;
   }
 
-  Future<void> _startAdvertising() async {
-    final peripheral = FlutterBlePeripheral();
-    final Player player = await MyUser.getInstance();
-
-// Create a custom AdvertiseData
-    String serviceUuid = _serviceUuid(player.counter);
-
-    debugPrint("uuid: $serviceUuid");
-    final advertiser = AdvertiseData(serviceUuid: serviceUuid);
-
-// Start advertising the service
-    await peripheral.start(advertiseData: advertiser);
-  }
-
   Future<void> startScanning() async {
-    await _startAdvertising();
-    String appUuid = _getAppUuid();
-
-    if (!arePaired()) {
-      _scanSubscription = _ble
-          .scanForDevices(
-        requireLocationServicesEnabled: true,
-        withServices: [],
-        scanMode: ScanMode.balanced,
-      )
-          .listen((scanResult) async {
-        if (scanResult.serviceUuids.isNotEmpty) {
-          String uuid = scanResult.serviceUuids.first.toString();
-          if (uuid.contains(appUuid)) {
-            if (_scannedDevices.every((element) =>
-                element.device.serviceUuids.first.toString() != uuid)) {
-              String string = uuid.substring(19).replaceFirst('-', '');
-              int counter = int.parse(string);
-              debugPrint('counter is $counter');
-              DocumentSnapshot? scannedUserData =
-                  await MyUser.getUserByCounter(counter);
-
-              if (scannedUserData != null) {
-                ScannedDevice scannedDevice = ScannedDevice(
-                    userData: scannedUserData, device: scanResult);
-                if (_scannedDevices.every(
-                    (element) => element.username != scannedDevice.username)) {
-                  _scannedDevices.add(scannedDevice);
-                  notifyListeners();
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-    if (_scanSubscription != null) {
-      await Future.delayed(const Duration(seconds: 7), () async {
-        if (_scanSubscription != null) {
-          debugPrint('Timeout');
-          _scanSubscription?.cancel();
-          _scanSubscription = null;
-          final peripheral = FlutterBlePeripheral();
-          peripheral.stop();
-
-          await startScanning();
-        }
-      });
-    }
+    Bluetooth.startScanning(_typeConstant, _scannedDevices, (userData, device) async {
+      return _ScannedDevice(data: userData, device: device);
+    } , notifyListeners, advertise: true);
   }
 
   Future<void> removePictureTaker() async {
@@ -168,14 +67,10 @@ class NearbyProvider extends ChangeNotifier {
         .update({'pictureTaker': ''});
   }
 
-  void stopScanning() async {
-    _scannedDevices.clear();
+  Future<void> stopScanning() async {
+    await Bluetooth.cancelStream(devices: _scannedDevices);
+    await Bluetooth.stopAdvertising();
 
-    await _scanSubscription?.cancel();
-    _scanSubscription = null;
-    final peripheral = FlutterBlePeripheral();
-    await peripheral.stop();
-    notifyListeners();
     if (_isAwaitingPairing && _lastDevice != null) {
       FriendRequest.removeFriendRequest();
       _pictureStream.cancel();
@@ -184,15 +79,16 @@ class NearbyProvider extends ChangeNotifier {
       _userPaired = false;
       await _userStream.cancel();
       await _pictureStream.cancel();
-      notifyListeners();
     }
+
+    notifyListeners();
   }
 
   Future<void> onTap(int index) async {
     _userPaired = false;
     _lastDevice = _scannedDevices[index];
     await removePictureTaker();
-    FriendRequest.sendFriendRequest(_lastDevice!.userData.id);
+    FriendRequest.sendFriendRequest(_lastDevice!.data.id);
     _setAwaitingPairing(true);
     _awaitPairing();
     _userStream.resume();
@@ -204,7 +100,7 @@ class NearbyProvider extends ChangeNotifier {
   }
 
   void _awaitPairing() {
-    String friendId = _lastDevice!.userData.id;
+    String friendId = _lastDevice!.data.id;
     String userId = MyUser.getUser()!.uid;
     debugPrint('first values ${[friendId, userId]}');
 
@@ -230,13 +126,10 @@ class NearbyProvider extends ChangeNotifier {
 
   Future<void> paired(Function showCamera, Function disposeAll) async {
     debugPrint('Pairing');
-    await _scanSubscription?.cancel();
-    _scanSubscription = null;
+    await Bluetooth.cancelStream();
     await _userStream.cancel();
-    final peripheral = FlutterBlePeripheral();
-    await peripheral.stop();
+    await Bluetooth.stopAdvertising();
     notifyListeners();
-
 
     int userIndex = Friendship(ids: _getIds()).userIndex;
 
@@ -256,7 +149,7 @@ class NearbyProvider extends ChangeNotifier {
   ///Return a list of the ids of the two users of the current friendship. It sorts automatically the ids in the list.
   static List<String> _getIds() {
     String userId = MyUser.getUser()!.uid;
-    String friendId = _lastDevice!.userData.id;
+    String friendId = _lastDevice!.data.id;
     List<String> usersId = [userId, friendId];
     usersId.sort();
 
@@ -308,33 +201,26 @@ class NearbyProvider extends ChangeNotifier {
   }
 }
 
-class ScannedDevice {
-  DocumentSnapshot userData;
-  DiscoveredDevice device;
-
-  late String name;
-  late String username;
+class _ScannedDevice extends BluetoothDevice{
   late int socialLevel;
   late bool alreadyFriend;
 
-  ScannedDevice({required this.userData, required this.device}) {
-    name =
-        userData.data().toString().contains('name') ? userData.get('name') : '';
-    username = userData.data().toString().contains('username')
-        ? userData.get('username')
-        : '';
-    socialLevel = userData.data().toString().contains('socialLevel')
-        ? userData.get('socialLevel')
-        : 0;
-    List<dynamic> friendsId = userData.data().toString().contains('friends')
-        ? userData.get('friends')
+  _ScannedDevice({required super.data, required super.device}) {
+    String id = MyUser.getUser()!.uid;
+
+    List<dynamic> friendsId = data.data().toString().contains('friends')
+        ? data.get('friends')
         : List.empty();
-    alreadyFriend = false;
-    for (String id in friendsId) {
-      if (MyUser.getUser()!.uid.toString() == id) {
-        alreadyFriend = true;
-        break;
-      }
+    alreadyFriend = !(friendsId.every((friendId) => friendId!=id));
+  }
+
+  @override
+  Future<void> awaitDevice() async {
+    if(alreadyFriend) {
+      String id = MyUser.getUser()!.uid;
+      Friendship friendship = Friendship(ids: [id, data.id]);
+      await friendship.awaitFriendship();
+      socialLevel = friendship.level;
     }
   }
 }

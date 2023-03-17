@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../providers/friends_provider.dart';
 import '../../../providers/nearby_provider.dart';
 import '../../../widgets/charging_bolt.dart';
-import '../../../widgets/progress_indactor.dart';
+import '../../../widgets/progress_indicator.dart';
 import '../camera_screen.dart';
 
 class NearbyDevicesList extends StatefulWidget {
@@ -74,9 +74,9 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
                 itemCount: _provider.length(),
                 itemBuilder: (context, index) {
                   return ListTile(
-                    leading: const CircleAvatar(
+                    leading: CircleAvatar(
                         backgroundImage:
-                            NetworkImage('https://picsum.photos/200')),
+                            _provider.avatar(index)),
                     title: Text(_provider.username(index)),
                     subtitle: Text(_provider.isFriend(index)
                         ? "Your Friend"

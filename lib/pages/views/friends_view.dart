@@ -25,7 +25,13 @@ class _FriendsPageState extends State<FriendsPage>
             appBar: AppBar(
               automaticallyImplyLeading: false,
               title: TextField(
+                focusNode: _provider.focusNode,
                   controller: _provider.searchController,
+                  onTapOutside: (_) => {
+                  WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+                    _provider.focusNode.unfocus();
+                  })
+                  },
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(10))),
@@ -81,7 +87,9 @@ class _FriendsPageState extends State<FriendsPage>
                         icon: const Icon(Icons.flash_on),
                       ),
                       ActionButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          _provider.showDualLinkingDialog(context);
+                        },
                         icon: const Icon(Icons.thunderstorm),
                       ),
                     ],

@@ -54,36 +54,39 @@ class _FriendListViewState extends State<FriendListView> {
                 return Stack(
                   children: [
                     FriendListItem(friend: item, isBestFriend: bestFriend),
-                    AnimatedBuilder(
-                        animation: _provider,
-                        builder: (BuildContext context, Widget? child) {
-                          bool first = true;
-                          if (_provider.needAnimation(item)) {
-                            if (first) {
-                              WidgetsBinding.instance
-                                  .addPostFrameCallback((timeStamp) async {
-                                await _provider.animateNewLevel(item);
-                              });
-                              first = false;
+                    Positioned(
+                      top: 15,
+                      child: AnimatedBuilder(
+                          animation: _provider,
+                          builder: (BuildContext context, Widget? child) {
+                            bool first = true;
+                            if (_provider.needAnimation(item)) {
+                              if (first) {
+                                WidgetsBinding.instance
+                                    .addPostFrameCallback((timeStamp) async {
+                                  await _provider.animateNewLevel(item);
+                                });
+                                first = false;
+                              }
+                              return const IgnorePointer(
+                                child: GlitterStack(
+                                  height: 123,
+                                  width: double.maxFinite,
+                                  duration: Duration(milliseconds: 500),
+                                  interval: Duration.zero,
+                                  children: [
+                                    Glitters(),
+                                    Glitters(),
+                                    Glitters(),
+                                    Glitters()
+                                  ],
+                                ),
+                              );
+                            } else {
+                              return const IgnorePointer(child: SizedBox());
                             }
-                            return const IgnorePointer(
-                              child: GlitterStack(
-                                height: 80,
-                                width: double.maxFinite,
-                                duration: Duration(milliseconds: 500),
-                                interval: Duration.zero,
-                                children: [
-                                  Glitters(),
-                                  Glitters(),
-                                  Glitters(),
-                                  Glitters()
-                                ],
-                              ),
-                            );
-                          } else {
-                            return const IgnorePointer(child: SizedBox());
-                          }
-                        })
+                          }),
+                    )
                   ],
                 );
               }),
@@ -117,7 +120,7 @@ class FriendListItem extends StatelessWidget {
         width: double.maxFinite,
         decoration: BoxDecoration(
             color: Colors.white60,
-            border: Border.all(color: Colors.grey, width: 0.1),
+            border: Border.all(color: Colors.grey, width: 0.3),
             borderRadius: BorderRadius.circular(15)),
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(16),

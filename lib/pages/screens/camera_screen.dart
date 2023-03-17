@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:myapp/providers/camera_provider.dart';
+import 'package:myapp/widgets/buttons.dart';
 import 'package:photo_view/photo_view.dart';
 
 /// CameraApp is the Main Application.
@@ -78,19 +79,14 @@ class _CameraScreenState extends State<CameraScreen> {
                 builder: (BuildContext context, Widget? child) {
                   if (_provider.getLastFile() == null) {
                     return Center(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.rectangle,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(width: 3, color: Colors.black),
+                      child: RectangleButton(
+                        onPressed: push,
+                        icon: const Icon(
+                          Icons.add_a_photo_rounded,
+                          size: 30,
                         ),
-                        child: IconButton(
-                            onPressed: push,
-                            icon: const Icon(
-                              Icons.add_a_photo_rounded,
-                              size: 30,
-                            )),
-                      ),
+                        color: Colors.black,
+                      )
                     );
                   } else {
                     return Center(

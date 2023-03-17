@@ -72,3 +72,25 @@ class _RoundButtonState extends State<RoundButton> {
     );
   }
 }
+
+class RectangleButton extends StatelessWidget {
+  final Function onPressed;
+  final Icon icon;
+  final Color color;
+  const RectangleButton({Key? key, required this.onPressed, required this.icon, required this.color})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.rectangle,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(width: 3, color: color),
+        ),
+        child: IconButton(
+          onPressed: () => onPressed(),
+          icon: icon,
+        ));
+  }
+}
