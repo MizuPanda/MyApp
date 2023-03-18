@@ -16,43 +16,99 @@ class _NearbyPalaceSubScreenState extends State<NearbyPalaceSubScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.maxFinite,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Row(
+    return Builder(builder: (context) {
+      if (_provider.getConnectedUsers() == null) {
+        return SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Align(alignment: Alignment.topLeft, child: BackArrow(back: widget.back,)),
-              const Text('Nearby Palaces', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),),
-            ],
-          ),
-          Expanded(
-              child:
-              ListView.builder(
+              Row(
+                children: [
+                  Align(
+                      alignment: Alignment.topLeft,
+                      child: BackArrow(
+                        back: widget.back,
+                      )),
+                  const Text(
+                    'Nearby Palaces',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              Expanded(
+                  child: ListView.builder(
                 itemCount: _provider.length(),
                 itemBuilder: (context, index) {
                   return ListTile(
                     isThreeLine: true,
-                    leading: CircleAvatar(
-                        backgroundImage:
-                        _provider.avatar(index)),
-                    title: Text(_provider.palace(index), style: const TextStyle(fontWeight: FontWeight.bold),),
+                    leading:
+                        CircleAvatar(backgroundImage: _provider.avatar(index)),
+                    title: Text(
+                      _provider.palace(index),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_provider.name(index), maxLines: 1,),
-                        Text(_provider.username(index), maxLines: 1,),
+                        Text(
+                          _provider.name(index),
+                          maxLines: 1,
+                        ),
+                        Text(
+                          _provider.username(index),
+                          maxLines: 1,
+                        ),
                       ],
                     ),
                     trailing: Text(_provider.power(index)),
+                    onTap: () async {
+                      await _provider.onTap(index, context);
+                    },
                   );
                 },
-              )
+              )),
+            ],
           ),
-        ],
-      ),
-    ); //M
+        );
+      } else {
+        return SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Align(
+                      alignment: Alignment.topLeft,
+                      child: BackArrow(
+                        back: widget.back,
+                      )),
+                  Text(
+                    _provider.hostPalace(),
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              Expanded(
+                  child: ListView.builder(
+                itemCount: _provider.hostLength(),
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    leading: CircleAvatar(
+                        backgroundImage: _provider.hostAvatar(index)),
+                    title: Text(_provider.hostName(index)),
+                    subtitle: Text(_provider.hostUsername(index)),
+                  );
+                },
+              )),
+            ],
+          ),
+        ); //Main Code
+      }
+    }); //M
   }
 }

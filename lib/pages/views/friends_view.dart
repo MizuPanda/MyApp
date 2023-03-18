@@ -25,13 +25,14 @@ class _FriendsPageState extends State<FriendsPage>
             appBar: AppBar(
               automaticallyImplyLeading: false,
               title: TextField(
-                focusNode: _provider.focusNode,
+                  focusNode: _provider.focusNode,
                   controller: _provider.searchController,
                   onTapOutside: (_) => {
-                  WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-                    _provider.focusNode.unfocus();
-                  })
-                  },
+                        WidgetsBinding.instance
+                            .addPostFrameCallback((timeStamp) {
+                          _provider.focusNode.unfocus();
+                        })
+                      },
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(10))),

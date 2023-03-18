@@ -14,12 +14,10 @@ class FriendProvider extends ChangeNotifier {
   final List<Friend> _friends = [];
   List<Friend> _filteredFriends = [];
   late List<dynamic> _friendsID;
-  bool _isDismissible = false;
   Filters _currentFilter = Filters.name;
 
   final PagingController<int, Friend> _pagingController =
       PagingController(firstPageKey: 0);
-
 
   //region Singleton
   static final FriendProvider _friendProvider = FriendProvider._internal();
@@ -57,7 +55,7 @@ class FriendProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> refresh() async {
+  void refresh() {
     MyUser.refreshPlayer();
     _friends.clear();
     _pagingController.refresh();
@@ -116,7 +114,10 @@ class FriendProvider extends ChangeNotifier {
     if (_searchTerm != null) {
       _filteredFriends = _filteredFriends
           .where((friend) =>
-      friend.name.toLowerCase().contains(_searchTerm!.toLowerCase()) || friend.username.toLowerCase().contains(_searchTerm!.toLowerCase()))
+              friend.name.toLowerCase().contains(_searchTerm!.toLowerCase()) ||
+              friend.username
+                  .toLowerCase()
+                  .contains(_searchTerm!.toLowerCase()))
           .toList();
     }
 
@@ -179,14 +180,12 @@ class FriendProvider extends ChangeNotifier {
   }
 
   void setDismissible(bool boolean) {
-    _isDismissible = boolean;
     notifyListeners();
   }
 
   void showLinkingDialog(BuildContext context) {
     showDialog(
       context: context,
-      barrierDismissible: _isDismissible,
       builder: (BuildContext context) {
         return Dialog(
           shape: RoundedRectangleBorder(

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:myapp/models/user_data.dart';
 
 import 'friendships.dart';
 import 'myuser.dart';
@@ -45,7 +46,7 @@ class Friend {
   }
 
   Future<String> awaitFriend() async {
-    DocumentSnapshot docs = await MyUser.getUserData(id);
+    DocumentSnapshot docs = await UserData.getData(id: id);
 
     name = docs.data().toString().contains('name') ? docs.get('name') : '';
     username =

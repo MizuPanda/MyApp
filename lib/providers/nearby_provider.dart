@@ -20,7 +20,6 @@ class NearbyProvider extends ChangeNotifier {
   late StreamSubscription<DocumentSnapshot> _userStream;
   late StreamSubscription<DocumentSnapshot> _pictureStream;
 
-
   NearbyProvider() {
     FriendRequest.removeFriendRequest();
   }
@@ -54,10 +53,15 @@ class NearbyProvider extends ChangeNotifier {
     return _scannedDevices.length;
   }
 
+  static bool doesLastDeviceExist() {
+    return _lastDevice != null;
+  }
+
   Future<void> startScanning() async {
-    Bluetooth.startScanning(_typeConstant, _scannedDevices, (userData, device) async {
+    Bluetooth.startScanning(_typeConstant, _scannedDevices,
+        (userData, device) async {
       return _ScannedDevice(data: userData, device: device);
-    } , notifyListeners, advertise: true);
+    }, notifyListeners, advertise: true);
   }
 
   Future<void> removePictureTaker() async {
@@ -101,7 +105,7 @@ class NearbyProvider extends ChangeNotifier {
 
   void _awaitPairing() {
     String friendId = _lastDevice!.data.id;
-    String userId = MyUser.getUser()!.uid;
+    String userId = MyUser.id();
     debugPrint('first values ${[friendId, userId]}');
 
     _userStream = FirebaseFirestore.instance
@@ -148,7 +152,7 @@ class NearbyProvider extends ChangeNotifier {
 
   ///Return a list of the ids of the two users of the current friendship. It sorts automatically the ids in the list.
   static List<String> _getIds() {
-    String userId = MyUser.getUser()!.uid;
+    String userId = MyUser.id();
     String friendId = _lastDevice!.data.id;
     List<String> usersId = [userId, friendId];
     usersId.sort();
@@ -180,7 +184,7 @@ class NearbyProvider extends ChangeNotifier {
           ? snapshot.get('pictureTaker')
           : '';
       debugPrint('PictureTaker is : $pictureTaker');
-      if (pictureTaker == MyUser.getUser()!.uid) {
+      if (pictureTaker == MyUser.id()) {
         debugPrint('Selected!');
         taker = pictureTaker;
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
@@ -189,11 +193,11 @@ class NearbyProvider extends ChangeNotifier {
       } else if (pictureTaker == taken || pictureTaker == abandoned) {
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
           dispose();
-          if (taker == MyUser.getUser()!.uid) {
+          if (taker == MyUser.id()) {
             dispose();
           }
           if (pictureTaker == taken) {
-            await FriendProvider().refresh();
+            FriendProvider().refresh();
           }
         });
       }
@@ -201,23 +205,21 @@ class NearbyProvider extends ChangeNotifier {
   }
 }
 
-class _ScannedDevice extends BluetoothDevice{
+class _ScannedDevice extends BluetoothDevice {
   late int socialLevel;
   late bool alreadyFriend;
+  final String id = MyUser.id();
 
   _ScannedDevice({required super.data, required super.device}) {
-    String id = MyUser.getUser()!.uid;
-
     List<dynamic> friendsId = data.data().toString().contains('friends')
         ? data.get('friends')
         : List.empty();
-    alreadyFriend = !(friendsId.every((friendId) => friendId!=id));
+    alreadyFriend = !(friendsId.every((friendId) => friendId != id));
   }
 
   @override
   Future<void> awaitDevice() async {
-    if(alreadyFriend) {
-      String id = MyUser.getUser()!.uid;
+    if (alreadyFriend) {
       Friendship friendship = Friendship(ids: [id, data.id]);
       await friendship.awaitFriendship();
       socialLevel = friendship.level;

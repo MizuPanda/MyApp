@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myapp/pages/login_page.dart';
 import 'package:myapp/pages/main_page.dart';
@@ -75,7 +75,6 @@ class _SelectPageState extends State<SelectPage> {
   bool first = true;
   @override
   Widget build(BuildContext context) {
-
     if (MyUser.getUser() != null) {
       return const MainPage();
     } else {

@@ -74,9 +74,8 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
                 itemCount: _provider.length(),
                 itemBuilder: (context, index) {
                   return ListTile(
-                    leading: CircleAvatar(
-                        backgroundImage:
-                            _provider.avatar(index)),
+                    leading:
+                        CircleAvatar(backgroundImage: _provider.avatar(index)),
                     title: Text(_provider.username(index)),
                     subtitle: Text(_provider.isFriend(index)
                         ? "Your Friend"

@@ -77,7 +77,11 @@ class RectangleButton extends StatelessWidget {
   final Function onPressed;
   final Icon icon;
   final Color color;
-  const RectangleButton({Key? key, required this.onPressed, required this.icon, required this.color})
+  const RectangleButton(
+      {Key? key,
+      required this.onPressed,
+      required this.icon,
+      required this.color})
       : super(key: key);
 
   @override

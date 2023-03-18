@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:myapp/models/events.dart';
 import 'package:myapp/models/myuser.dart';
@@ -10,17 +9,16 @@ class FriendRequest {
 
   static Future<void> sendFriendRequest(String receiverId) async {
     // Add the sender's ID to the receiver's requestId
-    User user = MyUser.getUser()!;
-    String senderId = user.uid;
+    String senderId = MyUser.id();
     await _collection.doc(receiverId).update({'requestId': senderId});
   }
 
   static Future<void> removeFriendRequest() async {
-    await _collection.doc(MyUser.getUser()!.uid).update({'requestId': ''});
+    await _collection.doc(MyUser.id()).update({'requestId': ''});
   }
 
   static Future<void> accomplishLinking(DateTime dateTime) async {
-    String userId = MyUser.getUser()!.uid;
+    String userId = MyUser.id();
 
     //Get requestId
     DocumentSnapshot senderData = await _collection.doc(userId).get();

@@ -1,3 +1,5 @@
+import 'dart:io' show File, Platform;
+
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -5,10 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:myapp/models/friend_request.dart';
+import 'package:myapp/providers/dual_provider.dart';
 import 'package:myapp/providers/nearby_provider.dart';
 import 'package:photo_view/photo_view.dart';
 
-import 'dart:io' show File, Platform;
+import '../models/events.dart';
+import '../models/myuser.dart';
 
 class CameraProvider extends ChangeNotifier {
   static late List<CameraDescription> _cameras;
@@ -42,6 +46,10 @@ class CameraProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _doDualLink(DateTime dateTime) async {
+    await Events.dualLinking(DualProvider.getConnectedIDS(), dateTime);
+  }
+
   Future<File> _changeFileNameOnly(File file, String newFileName) {
     var path = file.path;
     var lastSeparator = path.lastIndexOf(Platform.pathSeparator);
@@ -52,7 +60,7 @@ class CameraProvider extends ChangeNotifier {
     return file.rename(newPath);
   }
 
-  Future<void> _downloadFile(String friendshipId, DateTime dateTime) async {
+  Future<void> _downloadFile(DateTime dateTime, {bool? isPalace}) async {
     File? file = File(_lastFile!.path);
     file = await _changeFileNameOnly(file, dateTime.toUtc().toString());
     final filePath = file.absolute.path;
@@ -71,9 +79,15 @@ class CameraProvider extends ChangeNotifier {
 
     try {
       final fileName = file!.path.split('/').last;
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('friendships/$friendshipId/$fileName');
+      String firebasePath;
+      if (isPalace != null && isPalace) {
+        firebasePath = 'palaces/${MyUser.id()}/$fileName';
+      } else {
+        String friendshipId = NearbyProvider.getFriendshipId();
+        firebasePath = 'friendships/$friendshipId/$fileName';
+      }
+
+      final storageRef = FirebaseStorage.instance.ref().child(firebasePath);
       final uploadTask = storageRef.putFile(file);
       await uploadTask.whenComplete(
           () => debugPrint('Picture uploaded to Firebase Storage'));
@@ -82,12 +96,21 @@ class CameraProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> next() async {
+  Future<void> next({bool? isDualLink}) async {
     DateTime dateTime = DateTime.now().toUtc();
-    String friendshipId = NearbyProvider.getFriendshipId();
+
     //ADD FILE TO STORAGE
-    await _downloadFile(friendshipId, dateTime);
-    await skip(dateTime);
+    await _downloadFile(dateTime, isPalace: isDualLink);
+    if (isDualLink != null && isDualLink) {
+      await _doDualLink(dateTime);
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(MyUser.id())
+          .update({'linked': DualProvider.linked});
+    } else {
+      await skip(dateTime);
+    }
   }
 
   void changeFlashState() {

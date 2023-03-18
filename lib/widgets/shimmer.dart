@@ -119,15 +119,13 @@ class Shimmer extends StatelessWidget {
                         color: Colors.white60,
                         border: Border.all(color: Colors.black, width: 0.5),
                         borderRadius: BorderRadius.circular(9)),
-                    child:
-                    FadeShimmer(
+                    child: FadeShimmer(
                       height: 25,
                       width: double.maxFinite,
                       radius: 9,
                       millisecondsDelay: delay,
                       fadeTheme: isDarkMode ? FadeTheme.dark : FadeTheme.light,
                     ),
-
                   )
                 ],
               ),

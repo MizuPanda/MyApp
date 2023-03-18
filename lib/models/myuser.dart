@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:myapp/models/user_data.dart';
 
 class MyUser {
   static final FirebaseAuth _fb = FirebaseAuth.instance;
@@ -8,27 +9,9 @@ class MyUser {
 
   static Player? _instance;
 
-  static Future<DocumentSnapshot?> getUserByCounter(int counterValue) async {
-    final collectionRef = _db.collection('users');
-    final querySnapshot =
-        await collectionRef.where('counter', isEqualTo: counterValue).get();
-    if (querySnapshot.docs.isNotEmpty) {
-      final userDoc = querySnapshot.docs.first;
-      return userDoc;
-    } else {
-      return null;
-    }
-  }
-
-  static Future<DocumentSnapshot> getUserData(String id) async {
-    DocumentSnapshot docs = await _db.collection('users').doc(id).get();
-
-    return docs;
-  }
-
   static Future<Player> getInstance() async {
     if (_instance == null) {
-      DocumentSnapshot docs = await getUserData(getUser()!.uid);
+      DocumentSnapshot docs = await UserData.getData();
       String data = docs.data().toString();
       _instance = Player(
         username: data.contains('username') ? docs.get('username') : '',
@@ -44,6 +27,10 @@ class MyUser {
 
   static void refreshPlayer() {
     _instance == null;
+  }
+
+  static String id() {
+    return _fb.currentUser!.uid;
   }
 
   static User? getUser() {
@@ -118,5 +105,8 @@ class Player {
   String palaceName;
 
   Player(
-      {required this.username, required this.friendsID, required this.counter, required this.palaceName});
+      {required this.username,
+      required this.friendsID,
+      required this.counter,
+      required this.palaceName});
 }

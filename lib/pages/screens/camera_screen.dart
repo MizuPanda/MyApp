@@ -6,10 +6,11 @@ import 'package:myapp/providers/camera_provider.dart';
 import 'package:myapp/widgets/buttons.dart';
 import 'package:photo_view/photo_view.dart';
 
-/// CameraApp is the Main Application.
+import '../../providers/nearby_provider.dart';
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({Key? key}) : super(key: key);
+  final bool? disableSkip;
+  const CameraScreen({Key? key, this.disableSkip}) : super(key: key);
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -21,7 +22,7 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void dispose() async {
     super.dispose();
-    if (!_provider.successful) {
+    if (!_provider.successful && NearbyProvider.doesLastDeviceExist()) {
       await _provider.setPictureAbandoned();
     }
     _provider.resetPicture();
@@ -57,15 +58,19 @@ class _CameraScreenState extends State<CameraScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         TextButton(
-                            onPressed: () {
-                              _provider.skip(DateTime.now().toUtc());
-                            },
+                            onPressed: (widget.disableSkip != null &&
+                                    widget.disableSkip!)
+                                ? null
+                                : () {
+                                    _provider.skip(DateTime.now().toUtc());
+                                  },
                             child: const Text('Skip')),
                         TextButton(
                             onPressed: (_provider.getLastFile() == null)
                                 ? null
-                                : () {
-                                    _provider.next();
+                                : () async {
+                                    await _provider.next(
+                                        isDualLink: widget.disableSkip);
                                   },
                             child: const Text('Continue'))
                       ],
@@ -79,15 +84,14 @@ class _CameraScreenState extends State<CameraScreen> {
                 builder: (BuildContext context, Widget? child) {
                   if (_provider.getLastFile() == null) {
                     return Center(
-                      child: RectangleButton(
-                        onPressed: push,
-                        icon: const Icon(
-                          Icons.add_a_photo_rounded,
-                          size: 30,
-                        ),
-                        color: Colors.black,
-                      )
-                    );
+                        child: RectangleButton(
+                      onPressed: push,
+                      icon: const Icon(
+                        Icons.add_a_photo_rounded,
+                        size: 30,
+                      ),
+                      color: Colors.black,
+                    ));
                   } else {
                     return Center(
                       child: Container(

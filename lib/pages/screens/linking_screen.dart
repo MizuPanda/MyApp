@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
 import 'package:myapp/pages/screens/subscreens/nearby_subscreen.dart';
 import 'package:myapp/providers/nearby_provider.dart';
-import 'package:myapp/widgets/progress_indicator.dart';
 
 class LinkingScreen extends StatefulWidget {
   const LinkingScreen({Key? key}) : super(key: key);
@@ -60,9 +59,11 @@ class _LinkingScreenState extends State<LinkingScreen> {
               );
             } else {
               return Center(
-                child: TextButton(onPressed: () {
-                  _peripheral.enableBluetooth(askUser: true);
-                }, child: const Text('Active the bluetooth')),
+                child: TextButton(
+                    onPressed: () {
+                      _peripheral.enableBluetooth(askUser: true);
+                    },
+                    child: const Text('Active the bluetooth')),
               );
             }
           }),

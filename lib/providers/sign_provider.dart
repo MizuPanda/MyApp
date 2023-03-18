@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/myuser.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:myapp/models/myuser.dart';
 
 class SignProvider extends ChangeNotifier {
   final formKey1 = GlobalKey<FormState>();

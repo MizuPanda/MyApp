@@ -35,7 +35,7 @@ class Friendship {
       FirebaseFirestore.instance.collection('friendships');
 
   Friendship({required this.ids}) {
-    String userId = MyUser.getUser()!.uid;
+    String userId = MyUser.id();
     userIndex = ids.indexOf(userId);
     ids.sort();
   }

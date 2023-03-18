@@ -7,7 +7,7 @@ class SocialRank {
     if (friendId != null) {
       id = friendId;
     } else {
-      id = MyUser.getUser()!.uid;
+      id = MyUser.id();
     }
 
     FirebaseFirestore db = FirebaseFirestore.instance;

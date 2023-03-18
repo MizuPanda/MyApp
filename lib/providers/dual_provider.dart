@@ -1,17 +1,20 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../models/bluetooth.dart';
 import '../models/myuser.dart';
+import '../models/user_data.dart';
+import '../pages/screens/camera_screen.dart';
+import 'friends_provider.dart';
 
 class DualProvider extends ChangeNotifier {
   static Selection _state = Selection.select;
   static const String _typeConstant = '1';
-
+  static const List<String> linked = ['LINKED'];
   static final DualProvider _dualProvider = DualProvider._internal();
 
   //region Singleton
@@ -34,13 +37,15 @@ class DualProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setStateHost() async {
+  Future<void> setStateHost(BuildContext context) async {
     String palaceName = await getPalaceName();
     if (palaceName.isNotEmpty) {
-      await _startAdvertisingHost();
+      if (context.mounted) {
+        await _startAdvertisingHost(context);
+      }
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(MyUser.getUser()!.uid)
+          .doc(MyUser.id())
           .update({'linked': List.empty()});
     }
     _setNewState(Selection.host);
@@ -54,7 +59,6 @@ class DualProvider extends ChangeNotifier {
   Future<void> setStateSelect() async {
     switch (_state) {
       case Selection.select:
-        // TODO: Handle this case.
         break;
       case Selection.host:
         String palaceName = await getPalaceName();
@@ -63,7 +67,11 @@ class DualProvider extends ChangeNotifier {
         }
         break;
       case Selection.joiner:
-        await _stopScanning();
+        if (_selectedHost == null) {
+          await _stopScanning();
+        } else {
+          await _removeLinked();
+        }
         break;
     }
     _setNewState(Selection.select);
@@ -78,10 +86,50 @@ class DualProvider extends ChangeNotifier {
   late StreamSubscription<DocumentSnapshot> _connectingStream;
   static List<ConnectedUser> _joiners = [];
 
-  Future<void> _startAdvertisingHost() async {
+  static List<String> getConnectedIDS() {
+    List<String> ids = [];
+    for (ConnectedUser connected in _joiners) {
+      ids.add(connected.data.id);
+    }
+
+    return ids;
+  }
+
+  Future<void> _startAdvertisingHost(BuildContext context) async {
     await Bluetooth.startAdvertising(_typeConstant);
-    _connectingStream = _startListening();
+    if (context.mounted) {
+      _connectingStream = _startListening(context);
+    }
     _connectingStream.resume();
+  }
+
+  void startLinking(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shadowColor: Colors.blue,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: const CameraScreen(
+            disableSkip: true,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> deleteUser(int index) async {
+    String userId = _joiners[index].data.id;
+
+    _joiners.removeAt(index);
+    FirebaseFirestore.instance.collection('users').doc(MyUser.id()).update({
+      'linked': FieldValue.arrayRemove([userId])
+    });
+
+    notifyListeners();
   }
 
   Future<void> _stopAdvertising() async {
@@ -91,8 +139,8 @@ class DualProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  StreamSubscription<DocumentSnapshot> _startListening() {
-    String userId = MyUser.getUser()!.uid;
+  StreamSubscription<DocumentSnapshot> _startListening(BuildContext context) {
+    String userId = MyUser.id();
     return FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
@@ -101,13 +149,27 @@ class DualProvider extends ChangeNotifier {
       List<dynamic> connectedIds = snapshot.data()!.containsKey('linked')
           ? snapshot.get('linked')
           : List.empty();
-      List<ConnectedUser> connectedUsers = [];
-      for (String id in connectedIds) {
-        DocumentSnapshot snapshot = await MyUser.getUserData(id);
-        connectedUsers.add(ConnectedUser(data: snapshot));
-      }
+      if (connectedIds.toString() == linked.toString()) {
+        await setStateSelect();
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(MyUser.id())
+            .update({'linked': List.empty()});
+        if (context.mounted) {
+          context.pop();
+          context.pop();
+        }
 
-      _joiners = connectedUsers;
+        FriendProvider().refresh();
+      } else {
+        List<ConnectedUser> connectedUsers = [];
+        for (String id in connectedIds) {
+          DocumentSnapshot snapshot = await UserData.getData(id: id);
+          connectedUsers.add(ConnectedUser(data: snapshot));
+        }
+
+        _joiners = connectedUsers;
+      }
       notifyListeners();
     });
   }
@@ -118,32 +180,113 @@ class DualProvider extends ChangeNotifier {
   final List<_HostDevices> _hosts = [];
   _HostDevices? _selectedHost;
 
+  List<ConnectedUser>? getConnectedUsers() {
+    return _selectedHost?.connectedUsers;
+  }
+
+  int hostLength() {
+    return _selectedHost!.connectedUsers!.length;
+  }
+
+  String hostPalace() {
+    return _selectedHost!.palace;
+  }
+
+  ImageProvider hostAvatar(int index) {
+    return _selectedHost!.connectedUsers![index].avatar;
+  }
+
+  String hostName(int index) {
+    return _selectedHost!.connectedUsers![index].name;
+  }
+
+  String hostUsername(int index) {
+    return _selectedHost!.connectedUsers![index].username;
+  }
+
   Future<void> _startScanning() async {
     Bluetooth.startScanning(_typeConstant, _hosts, (snapshot, device) async {
-      /* THIS IS ON TAP AND DEFINE SELECTED HOST
-      --> THEN HE JOINS THE LIST, MAYBE I CAN SHOW DIRECTLY THE CHARGING CLOUD ANIMATION
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(snapshot.id)
-          .update({
-        'linked': FieldValue.arrayUnion([MyUser.getUser()!.uid])
-      });*/
       return _HostDevices(data: snapshot, device: device);
     }, notifyListeners);
+  }
+
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _hostStream;
+
+  Future<StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
+      _startListeningHost(BuildContext context) async {
+    String hostId = _selectedHost!.data.id;
+    ConnectedUser host = ConnectedUser(data: _selectedHost!.data);
+
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(hostId)
+        .snapshots()
+        .listen((snapshot) async {
+      List<dynamic> connectedIds = snapshot.data()!.containsKey('linked')
+          ? snapshot.get('linked')
+          : List.empty();
+      if (connectedIds.toString() == linked.toString()) {
+        _state = Selection.select;
+        _hosts.clear();
+        FriendProvider().refresh();
+        if (context.mounted) {
+          context.pop();
+        }
+      } else {
+        if (connectedIds.every((id) => id != MyUser.id())) {
+          _selectedHost = null;
+          await setStateSelect();
+        } else {
+          List<ConnectedUser> connectedUsers = [host];
+          for (String id in connectedIds) {
+            DocumentSnapshot snapshot = await UserData.getData(id: id);
+            connectedUsers.add(ConnectedUser(data: snapshot));
+          }
+
+          _selectedHost?.connectedUsers = connectedUsers;
+        }
+      }
+
+      notifyListeners();
+    });
+  }
+
+  Future<void> onTap(int index, BuildContext context) async {
+    await Bluetooth.cancelStream();
+    _selectedHost = _hosts[index];
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(_selectedHost!.data.id)
+        .update({
+      'linked': FieldValue.arrayUnion([MyUser.id()])
+    });
+    if (context.mounted) {
+      _hostStream = await _startListeningHost(context);
+    }
+    _hostStream!.resume();
+    notifyListeners();
+  }
+
+  Future<void> _removeLinked() async {
+    if (_selectedHost != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_selectedHost!.data.id)
+          .update({
+        'linked': FieldValue.arrayRemove([MyUser.id()])
+      });
+    }
+    _selectedHost = null;
+    if (_hostStream != null) {
+      _hostStream!.cancel();
+    }
+    _hosts.clear();
   }
 
   Future<void> _stopScanning() async {
     await Bluetooth.cancelStream(devices: _hosts);
 
-
-    if(_selectedHost != null) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(_selectedHost!.data.id)
-          .update({
-        'linked': FieldValue.arrayRemove([MyUser.getUser()!.uid])
-      });
-    }
+    await _removeLinked();
     notifyListeners();
   }
 
@@ -151,41 +294,45 @@ class DualProvider extends ChangeNotifier {
 
   //region Data
   int length() {
-    if(_state == Selection.host) {
+    if (_state == Selection.host) {
       return _joiners.length;
     } else {
       return _hosts.length;
     }
   }
+
   String palace(int index) {
     return _hosts[index].palace;
   }
+
   String name(int index) {
-    if(_state == Selection.host) {
+    if (_state == Selection.host) {
       return _joiners[index].name;
     } else {
       return _hosts[index].name;
     }
   }
+
   String username(int index) {
-    if(_state == Selection.host) {
+    if (_state == Selection.host) {
       return _joiners[index].username;
     } else {
       return _hosts[index].username;
     }
   }
+
   ImageProvider avatar(int index) {
-    if(_state == Selection.host) {
+    if (_state == Selection.host) {
       return _joiners[index].avatar;
     } else {
       return _hosts[index].avatar;
     }
   }
+
   String power(int index) {
-    String formattedNumber = NumberFormat.compactCurrency(
-      decimalDigits: 1,
-      symbol: ''
-    ).format(_hosts[index].power);
+    String formattedNumber =
+        NumberFormat.compactCurrency(decimalDigits: 1, symbol: '')
+            .format(_hosts[index].power);
 
     return 'SP~$formattedNumber';
   }
@@ -197,6 +344,7 @@ enum Selection { select, host, joiner }
 class _HostDevices extends BluetoothDevice {
   late String palace;
   late double power;
+  List<ConnectedUser>? connectedUsers;
 
   _HostDevices({
     required super.data,
