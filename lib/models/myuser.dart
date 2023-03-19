@@ -85,9 +85,9 @@ class MyUser {
       "power": 0,
       "requestId": '',
       "friends": [],
-      'linked': []
+      'linked': [],
+      'memories': []
     };
-
     _db
         .collection("users")
         .doc(_fb.currentUser!.uid)

@@ -62,7 +62,7 @@ class CameraProvider extends ChangeNotifier {
 
   Future<void> _downloadFile(DateTime dateTime, {bool? isPalace}) async {
     File? file = File(_lastFile!.path);
-    file = await _changeFileNameOnly(file, dateTime.toUtc().toString());
+    file = await _changeFileNameOnly(file, 'DATE_${dateTime.toUtc()}');
     final filePath = file.absolute.path;
     // Create output file path
     // eg:- "Volume/VM/abcd_out.jpeg"

@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:myapp/models/social_rank.dart';
 import 'package:myapp/providers/friends_provider.dart';
 
 import 'friend.dart';
 import 'friendships.dart';
+import 'myuser.dart';
 
 class Events {
   static const double singleLinkEXP = 10;
@@ -47,12 +49,17 @@ class Events {
     for (Friend friend in alreadyFriends) {
       await friend.friendship.addProgress(
           dualLinkEXP * _multiplier(friendCounter),
-          dateTime: dateTime);
+          dateTime: dateTime,
+          isPalace: true);
       await SocialRank.addPower(dualLinkPow, friendId: friend.id);
     }
     for (String id in notFriendsID) {
       await SocialRank.addPower(dualLinkPow / 2, friendId: id);
     }
+    await FirebaseFirestore.instance.collection('users').doc(MyUser.id()).update(
+        {
+          'memories': FieldValue.arrayUnion([dateTime.toString()])
+        });
   }
 
   static double _multiplier(int counter) {

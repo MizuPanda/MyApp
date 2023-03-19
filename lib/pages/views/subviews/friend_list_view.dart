@@ -6,6 +6,7 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import '../../../models/friend.dart';
 import '../../../providers/friends_provider.dart';
 import '../../../widgets/shimmer.dart';
+import '../../photo_grid_page.dart';
 
 class FriendListView extends StatefulWidget {
   const FriendListView({super.key});
@@ -42,7 +43,7 @@ class _FriendListViewState extends State<FriendListView> {
                   padding: EdgeInsets.all(8),
                   child: Center(
                       child: Text(
-                    'No friend found.',
+                    'No friend :(',
                     style: TextStyle(fontSize: 20),
                   )),
                 );
@@ -129,9 +130,17 @@ class FriendListItem extends StatelessWidget {
             Expanded(
               child: Row(
                 children: [
-                  CircleAvatar(
-                    backgroundImage: friend.photo,
-                    radius: 20,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => PhotoGrid(friend: friend))
+                      );
+                    },
+                    child: CircleAvatar(
+                      backgroundImage: friend.photo,
+                      radius: 20,
+                    ),
                   ),
                   const SizedBox(
                     width: 8,

@@ -23,7 +23,7 @@ class Friendship {
     return 100;
   }
 
-  String _docId() {
+  String docId() {
     return ids.first + ids.last;
   }
 
@@ -41,8 +41,7 @@ class Friendship {
   }
 
   Future<void> awaitFriendship() async {
-    String docId = _docId();
-    DocumentSnapshot friendship = await _collection.doc(docId).get();
+    DocumentSnapshot friendship = await _collection.doc(docId()).get();
     String data = friendship.data().toString();
     progress =
         data.contains('progress') ? friendship.get('progress').toDouble() : -1;
@@ -61,7 +60,7 @@ class Friendship {
 
   Future<void> hasAnimatedLevel() async {
     newLevels[userIndex] = false;
-    await _collection.doc(_docId()).update({'newLevel$userIndex': false});
+    await _collection.doc(docId()).update({'newLevel$userIndex': false});
   }
 
   void _verifyLevel() {
@@ -81,24 +80,35 @@ class Friendship {
     progress -= d;
   }
 
-  Future<void> addProgress(double d, {DateTime? dateTime}) async {
+  Future<void> addProgress(double d, {DateTime? dateTime, bool? isPalace}) async {
     progress += d;
     _verifyLevel();
-    String docId = _docId();
+    String id = docId();
     if (dateTime != null) {
       lastSeen = dateTime;
 
-      await _collection.doc(docId).update({
-        //IN CASE OF SINGLE LINK
-        'progress': progress,
-        'lastSeen': lastSeen.toString(),
-        'level': level,
-        'newLevel0': newLevels.first,
-        'newLevel1': newLevels.last,
-        'memories': FieldValue.arrayUnion([dateTime.toString()]),
-      });
+      if(isPalace != null && isPalace) {
+        await _collection.doc(id).update({
+          //IN CASE OF SINGLE LINK
+          'progress': progress,
+          'lastSeen': lastSeen.toString(),
+          'level': level,
+          'newLevel0': newLevels.first,
+          'newLevel1': newLevels.last,
+        });
+      } else {
+        await _collection.doc(id).update({
+          //IN CASE OF SINGLE LINK
+          'progress': progress,
+          'lastSeen': lastSeen.toString(),
+          'level': level,
+          'newLevel0': newLevels.first,
+          'newLevel1': newLevels.last,
+          'memories': FieldValue.arrayUnion([dateTime.toString()]),
+        });
+      }
     } else {
-      await _collection.doc(_docId()).update({
+      await _collection.doc(id).update({
         'progress': progress,
         'level': level,
         'newLevel0': newLevels.first,

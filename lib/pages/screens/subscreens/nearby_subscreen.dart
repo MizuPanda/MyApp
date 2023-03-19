@@ -43,7 +43,6 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
     void showCamera() {
       showDialog(
         context: context,
-        barrierDismissible: false,
         builder: (BuildContext context) {
           return Dialog(
             shadowColor: Colors.blue,
@@ -57,7 +56,9 @@ class _NearbyDevicesListState extends State<NearbyDevicesList> {
     }
 
     void dispose() {
-      context.pop();
+      if(context.canPop()) {
+        context.pop();
+      }
     }
 
     return SizedBox(

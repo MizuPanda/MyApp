@@ -106,7 +106,6 @@ class DualProvider extends ChangeNotifier {
   void startLinking(BuildContext context) {
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
           shadowColor: Colors.blue,
