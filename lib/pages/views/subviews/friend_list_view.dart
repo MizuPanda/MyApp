@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animation_progress_bar/flutter_animation_progress_bar.dart';
+import 'package:flutter_firebase_chat_core/flutter_firebase_chat_core.dart';
 import 'package:glitters/glitters.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
+import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+
 
 import '../../../models/friend.dart';
 import '../../../providers/friends_provider.dart';
 import '../../../widgets/shimmer.dart';
+import '../../chat_page.dart';
 import '../../photo_grid_page.dart';
 
 class FriendListView extends StatefulWidget {
@@ -116,116 +120,128 @@ class FriendListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 15),
-      child: Container(
-        height: 123,
-        width: double.maxFinite,
-        decoration: BoxDecoration(
-            color: Colors.white60,
-            border: Border.all(color: Colors.grey, width: 0.3),
-            borderRadius: BorderRadius.circular(15)),
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => PhotoGrid(friend: friend))
-                      );
-                    },
-                    child: CircleAvatar(
-                      backgroundImage: friend.photo,
-                      radius: 20,
+      child: GestureDetector(
+        onTap: () async {
+          types.User friendUser = types.User(id: friend.id);
+          types.Room room = await FirebaseChatCore.instance.createRoom(friendUser);
+          if(context.mounted) {
+            Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ChatPage(room: room, friend: friend,))
+            );
+          }
+        },
+        child: Container(
+          height: 123,
+          width: double.maxFinite,
+          decoration: BoxDecoration(
+              color: Colors.white60,
+              border: Border.all(color: Colors.grey, width: 0.3),
+              borderRadius: BorderRadius.circular(15)),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => PhotoGrid(friend: friend))
+                        );
+                      },
+                      child: CircleAvatar(
+                        backgroundImage: friend.photo,
+                        radius: 20,
+                      ),
                     ),
-                  ),
-                  const SizedBox(
-                    width: 8,
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    const SizedBox(
+                      width: 8,
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Builder(
+                            builder: (BuildContext context) {
+                              if (isBestFriend) {
+                                return Row(
+                                  children: [
+                                    Text(
+                                      maxLines: 1,
+                                      friend.name,
+                                      style: const TextStyle(
+                                          color: Colors.black, fontSize: 16.0),
+                                    ),
+                                    const Icon(
+                                      Icons.star_rounded,
+                                      shadows: [
+                                        Shadow(
+                                            color: Colors.black,
+                                            offset: Offset(0, 0),
+                                            blurRadius: 4)
+                                      ],
+                                      color: Colors.yellow,
+                                    )
+                                  ],
+                                );
+                              } else {
+                                return Text(
+                                  maxLines: 1,
+                                  friend.name,
+                                  style: const TextStyle(
+                                      color: Colors.black, fontSize: 16.0),
+                                );
+                              }
+                            },
+                          ),
+                          const SizedBox(
+                            height: 8,
+                          ),
+                          Text(
+                            friend.username,
+                            style: TextStyle(
+                                color: Colors.grey[700], fontSize: 14.0),
+                          )
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Builder(
-                          builder: (BuildContext context) {
-                            if (isBestFriend) {
-                              return Row(
-                                children: [
-                                  Text(
-                                    maxLines: 1,
-                                    friend.name,
-                                    style: const TextStyle(
-                                        color: Colors.black, fontSize: 16.0),
-                                  ),
-                                  const Icon(
-                                    Icons.star_rounded,
-                                    shadows: [
-                                      Shadow(
-                                          color: Colors.black,
-                                          offset: Offset(0, 0),
-                                          blurRadius: 4)
-                                    ],
-                                    color: Colors.yellow,
-                                  )
-                                ],
-                              );
-                            } else {
-                              return Text(
-                                maxLines: 1,
-                                friend.name,
-                                style: const TextStyle(
-                                    color: Colors.black, fontSize: 16.0),
-                              );
-                            }
-                          },
-                        ),
-                        const SizedBox(
-                          height: 8,
-                        ),
-                        Text(
-                          friend.username,
-                          style: TextStyle(
-                              color: Colors.grey[700], fontSize: 14.0),
-                        )
+                        Text('Lvl ${friend.friendship.level}'),
+                        const Spacer(),
+                        const Text('Last seen'),
+                        Text(friend.friendship.timeAgo())
                       ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('Lvl ${friend.friendship.level}'),
-                      const Spacer(),
-                      const Text('Last seen'),
-                      Text(friend.friendship.timeAgo())
-                    ],
-                  )
-                ],
+                    )
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(
-              height: 8,
-            ),
-            Container(
-              height: 25,
-              decoration: BoxDecoration(
-                  color: Colors.white60,
-                  border: Border.all(color: Colors.black, width: 0.5),
-                  borderRadius: BorderRadius.circular(9)),
-              child: FAProgressBar(
-                backgroundColor: Colors.white,
-                progressGradient: const LinearGradient(colors: [
-                  Colors.blueAccent,
-                  Colors.lightBlueAccent,
-                ]),
-                currentValue: friend.friendship.progress,
-                maxValue: friend.friendship.max(),
+              const SizedBox(
+                height: 8,
               ),
-            )
-          ],
+              Container(
+                height: 25,
+                decoration: BoxDecoration(
+                    color: Colors.white60,
+                    border: Border.all(color: Colors.black, width: 0.5),
+                    borderRadius: BorderRadius.circular(9)),
+                child: FAProgressBar(
+                  backgroundColor: Colors.white,
+                  progressGradient: const LinearGradient(colors: [
+                    Colors.blueAccent,
+                    Colors.lightBlueAccent,
+                  ]),
+                  currentValue: friend.friendship.progress,
+                  maxValue: friend.friendship.max(),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );

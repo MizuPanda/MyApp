@@ -44,6 +44,13 @@ dependencies:
   cloud_functions: ^4.0.12
 
   flutter_chat_ui: ^1.6.6
+  flutter_firebase_chat_core: ^1.6.4
+  file_picker: ^5.2.6
+  uuid: ^3.0.7
+  http: ^0.13.5
+  path_provider: ^2.0.14
+  open_filex: ^4.3.2
+  mime: ^1.0.4
 
   go_router: ^6.0.6
   provider: ^6.0.5
